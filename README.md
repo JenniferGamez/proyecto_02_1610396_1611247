@@ -16,6 +16,7 @@ This project was developed using the following tech stack:
 2. Install a compatible Node.js version (I guess any v20.10+ should suffice)
 3. Run `npm install` to install the dependencies
 4. Run `npm run dev` to run the Three.js project, usually on port 5173
+5. perfect
 
 ## Reference material
 
