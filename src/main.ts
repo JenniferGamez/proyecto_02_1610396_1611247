@@ -48,25 +48,12 @@ class App {
     const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
 
     // Create shader material
-    this.geometry = new THREE.PlaneGeometry(1, 1, 64, 64);
-
-    console.log('geometry attributes', this.geometry.attributes);
-    const count = this.geometry.attributes.position.count;
-    let randoms = new Float32Array(count);
-    randoms = randoms.map(() => Math.random());
-    const randomAttributes = new THREE.BufferAttribute(randoms, 1);
-    this.geometry.setAttribute('a_random', randomAttributes);
-    console.log('geometry attributes', this.geometry.attributes);
-
-    const textureLoader = new THREE.TextureLoader();
-    const flagTexture = textureLoader.load('/img/flag-france.jpg', (texture) => {
-      this.texture = texture;
-    });
-    console.log('flagTexture:', flagTexture); // Check if texture is loaded
+    this.geometry = new THREE.PlaneGeometry(6, 6, 64, 64);
 
     this.material = new THREE.RawShaderMaterial({
       vertexShader,
       fragmentShader,
+
       transparent: true,
       uniforms: {
         projectionMatrix: { value: this.camera.projectionMatrix },
@@ -78,7 +65,9 @@ class App {
         u_texture: { value: this.texture },
       },
       glslVersion: THREE.GLSL3,
+      side: THREE.DoubleSide,
     });
+
     // Default way you'll find in TONS of tutorials
     // this.material = new THREE.ShaderMaterial({
     //   vertexShader,
@@ -89,10 +78,10 @@ class App {
     //   },
     // });
 
-    // Create mesh
+    // Create mesh: Water
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.scene.add(this.mesh);
-    this.camera.position.z = 1.5;
+    this.camera.position.z = 5;
 
     const controls = new OrbitControls(this.camera, canvas);
     controls.enableDamping = true;
