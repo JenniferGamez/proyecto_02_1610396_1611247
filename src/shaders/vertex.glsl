@@ -4,20 +4,23 @@ precision mediump float;
 uniform mat4 projectionMatrix;
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
+
 // - custom uniforms
 uniform float u_time;
+uniform vec3 u_drop_position;
 
 // - attributes
 in vec3 position;
 in vec3 normal;
 in vec2 uv;
+
 // - custom
-in float a_random;
+// in float a_random;
 
 // - varying
-out float v_random;
-out float v_height;
-out vec2 v_uv;
+// out float v_random;
+// out float v_height;
+// out vec2 v_uv;
 
 vec4 clipSpaceTransform(vec4 modelPosition) {
   // already modelMatrix multiplied
@@ -25,28 +28,29 @@ vec4 clipSpaceTransform(vec4 modelPosition) {
 }
 
 void main() {
-  // 01. base vertex shader
-  vec4 viewPosition = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+  vec3 pos = position;
 
-  // 02. basic vertex mod with sin function
-  // vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-  // modelPosition.z += sin(modelPosition.x * 18.0) * 0.1;
-  // vec4 viewPosition = clipSpaceTransform(modelPosition);
+    // Distancia al punto de caída
+    float distance_to_drop = distance(pos.xz, u_drop_position.xz);
 
-  // 03. attribute handling
-  // vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-  // modelPosition.z += a_random * 0.071;
-  // vec4 viewPosition = clipSpaceTransform(modelPosition);
-  // v_random = a_random;
+    // Tiempo transcurrido desde la caída (simulado)
+    float time_since_drop = u_time - u_drop_position.y; // Asumimos que u_drop_position.y es el tiempo de la caída
 
-  // 04. attribute handling with custom uniform (time)
-  // vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-  // modelPosition.z += sin(modelPosition.x * 10.0 + u_time * 1.0) * 0.07;
-  // vec4 viewPosition = clipSpaceTransform(modelPosition);
-  // v_height = sin(modelPosition.x * 10.0 + u_time * 1.0);
+    // Evitar divisiones por cero y calcular la expansión solo después de la caída
+    if (time_since_drop > 0.0) {
+        // Radio de expansión de las ondas
+        float wave_radius = time_since_drop * 5.0; // Ajusta la velocidad de expansión
 
-  // 05. passing UVs
-  v_uv = uv;
+        // Intensidad de la onda (amplitud)
+        float wave_amplitude = 0.2 * exp(-distance_to_drop / wave_radius); // Atenuación con la distancia
+
+        // Desplazamiento vertical de los vértices
+        float displacement = wave_amplitude * cos(distance_to_drop * 10.0 - time_since_drop * 20.0); // Frecuencia y velocidad de la onda
+
+        pos.z += displacement;
+  }
+
+  vec4 viewPosition = projectionMatrix * viewMatrix * modelMatrix * vec4(pos, 1.0);
 
   gl_Position = viewPosition;
 }

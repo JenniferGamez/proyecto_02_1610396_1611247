@@ -105,8 +105,15 @@ class App {
     requestAnimationFrame(this.animate);
     const elapsedTime = (Date.now() - this.startTime) / 1000;
     this.material.uniforms.u_time.value = elapsedTime;
+  
+    // Actualiza las matrices en cada frame
+    this.material.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
+    this.material.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
+    this.material.uniforms.modelMatrix.value = this.mesh.matrixWorld; // Importante: usa la matriz del objeto
+  
     this.renderer.render(this.scene, this.camera);
   }
+  
 
   private onWindowResize(): void {
     this.camera.aspect = this.camConfig.aspect;
