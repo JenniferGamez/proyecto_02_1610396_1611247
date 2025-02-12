@@ -153,9 +153,9 @@ class App {
         const intersectionPoint = intersects[0].point;
         this.material.uniforms.u_clickPosition.value = intersectionPoint; // Usa Vector3
         this.material.uniforms.u_clickTime.value = this.clickTime;
-        
-        // Activa la elasticidad al hacer el clic
-        this.elasticity = 1.0;
+
+        // Activa la elasticidad
+        this.elasticity = 1.0; 
         this.material.uniforms.u_elasticity.value = this.elasticity; // Actualiza el uniforme
     } else {
         this.material.uniforms.u_clickTime.value = -1;
