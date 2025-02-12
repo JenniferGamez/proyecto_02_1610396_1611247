@@ -67,9 +67,17 @@ class App {
         u_time: { value: 0.0 },
         u_resolution: { value: resolution },
         u_elasticity: { value: this.elasticity },
-        u_texture: { value: this.texture },
+        //u_texture: { value: this.texture },
         u_clickTime: { value: -1.0 },
         u_clickPosition: { value: new THREE.Vector3(-1.0, -1.0, -1.0) },
+        // ... (tus uniforms existentes)
+        u_shininess: { value: 32.0 }, // Ajusta el brillo (valores altos = brillo más pequeño)
+        u_transparency: { value: 0.6 }, // Ajusta la transparencia (0.0 - 1.0)
+        u_jiggleIntensity: { value: 0.05 }, // Intensidad del temblequeo
+        u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() }, // Ejemplo de dirección de la luz
+        u_lightColor: { value: new THREE.Color(0xffffff) }, // Color de la luz
+        u_objectColor: { value: new THREE.Color(0x00ff00) }, // Color del objeto (verde en este ejemplo)
+        cameraPosition: { value: this.camera.position }, // Posición de la cámara
       },
       glslVersion: THREE.GLSL3,
       side: THREE.DoubleSide,
@@ -111,15 +119,36 @@ class App {
     this.material.uniforms.u_time.value = elapsedTime;
   
     // Actualiza las matrices en cada frame
+    this.material.uniforms.cameraPosition.value = this.camera.position;
     this.material.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
     this.material.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
     this.material.uniforms.modelMatrix.value = this.mesh.matrixWorld; // Importante: usa la matriz del objeto
     
     // Amortiguación
-    if (this.elasticity > 0.0) {
+    if (this.elasticity > 0.001) {
       this.elasticity -= 0.02 * this.elasticity;
       this.material.uniforms.u_elasticity.value = this.elasticity;
+    } else {
+      this.elasticity = 0.0; // Asegura que la elasticidad llegue a cero
+      this.material.uniforms.u_elasticity.value = this.elasticity;
     }
+
+    // *** NUEVO: Actualización de las uniforms de efectos ***
+    // Puedes usar Math.sin, Math.cos o cualquier otra función para variar los valores
+    // de las uniforms con el tiempo.  ¡Experimenta con diferentes valores!
+
+    const jiggleIntensity = 0.03 + Math.sin(elapsedTime * 4) * 0.015; // Rango: 0.015 a 0.045
+    const shininess = 16.0 + Math.cos(elapsedTime * 2) * 8; // Rango: 8 a 24
+    const transparency = 0.5 + Math.sin(elapsedTime * 2) * 0.1; // Rango: 0.4 a 0.6
+
+    this.material.uniforms.u_jiggleIntensity.value = jiggleIntensity;
+    this.material.uniforms.u_shininess.value = shininess;
+    this.material.uniforms.u_transparency.value = transparency;
+
+    // Si quieres variar la refracción y dispersión:
+    // this.material.uniforms.u_refractionIntensity.value = 0.1 + Math.sin(elapsedTime) * 0.05;
+    // this.material.uniforms.u_dispersionIntensity.value = 0.1 + Math.cos(elapsedTime) * 0.05;
+
     this.renderer.render(this.scene, this.camera);
   }
   
