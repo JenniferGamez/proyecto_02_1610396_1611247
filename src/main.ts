@@ -12,6 +12,9 @@ class App {
   private material: THREE.ShaderMaterial;
   private mesh: THREE.Mesh;
   private startTime: number;
+  private startTime: number;
+  private clickTime: number;
+  private clickPosition: THREE.Vector2;
 
   private camConfig = {
     fov: 75,
@@ -48,7 +51,7 @@ class App {
     const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
 
     // Create shader material
-    this.geometry = new THREE.PlaneGeometry(6, 6, 64, 64);
+    this.geometry = new THREE.BoxGeometry(6, 6, 6);
 
     this.material = new THREE.RawShaderMaterial({
       vertexShader,
@@ -63,39 +66,37 @@ class App {
         u_time: { value: 0.0 },
         u_resolution: { value: resolution },
         u_texture: { value: this.texture },
+        u_clickTime: { value: -1.0 },
+        u_clickPosition: { value: new THREE.Vector2(-1.0, -1.0) },
       },
       glslVersion: THREE.GLSL3,
       side: THREE.DoubleSide,
     });
 
-    // Default way you'll find in TONS of tutorials
-    // this.material = new THREE.ShaderMaterial({
-    //   vertexShader,
-    //   fragmentShader,
-    //   uniforms: {
-    //     time: { value: 0.0 },
-    //     resolution: { value: resolution },
-    //   },
-    // });
-
     // Create mesh: Water
     this.mesh = new THREE.Mesh(this.geometry, this.material);
+    this.mesh.rotation.y = Math.PI / 5;
+    this.mesh.rotation.x = Math.PI / 6;
     this.scene.add(this.mesh);
-    this.camera.position.z = 5;
+    this.camera.position.z = 8;
 
     const controls = new OrbitControls(this.camera, canvas);
     controls.enableDamping = true;
 
     // Initialize
     this.startTime = Date.now();
+    this.clickTime = -1;
+    this.clickPosition = new THREE.Vector2(-1.0, -1.0);
     this.onWindowResize();
 
     // Bind methods
     this.onWindowResize = this.onWindowResize.bind(this);
     this.animate = this.animate.bind(this);
+    this.onDocumentClick = this.onDocumentClick.bind(this);
 
     // Add event listeners
     window.addEventListener('resize', this.onWindowResize);
+    window.addEventListener('click', this.onDocumentClick);
 
     // Start the main loop
     this.animate();
@@ -120,6 +121,13 @@ class App {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+  }
+
+  private onDocumentClick(event: MouseEvent): void {
+    this.clickTime = (Date.now() - this.startTime) / 1000;
+    this.clickPosition.set(event.clientX / window.innerWidth, 1.0 - event.clientY / window.innerHeight);
+    this.material.uniforms.u_clickTime.value = this.clickTime;
+    this.material.uniforms.u_clickPosition.value.copy(this.clickPosition);
   }
 }
 
