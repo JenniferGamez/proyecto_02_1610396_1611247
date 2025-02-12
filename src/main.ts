@@ -79,8 +79,9 @@ class App {
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.mesh.rotation.y = Math.PI / 5;
     this.mesh.rotation.x = Math.PI / 6;
+    this.mesh.position.y = 1;
     this.scene.add(this.mesh);
-    this.camera.position.z = 8;
+    this.camera.position.z = 9;
 
     const controls = new OrbitControls(this.camera, canvas);
     controls.enableDamping = true;
@@ -88,7 +89,7 @@ class App {
     // Initialize
     this.startTime = Date.now();
     this.clickTime = -1;
-    this.clickPosition = new THREE.Vector2(-1.0, -1.0);
+    this.clickPosition = new THREE.Vector3(-1.0, -1.0);
     this.onWindowResize();
 
     // Bind methods
@@ -124,15 +125,18 @@ class App {
   
 
   private onWindowResize(): void {
-    this.camera.aspect = this.camConfig.aspect;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    this.renderer.setSize(width, height);
+
+    this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.material.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+    this.material.uniforms.u_resolution.value.set(width, height);
   }
 
   private onDocumentClick(event: MouseEvent): void {
     this.clickTime = (Date.now() - this.startTime) / 1000;
-    this.clickPosition.set(event.clientX / window.innerWidth, 1.0 - event.clientY / window.innerHeight);
+    //this.clickPosition.set(event.clientX / window.innerWidth, 1.0 - event.clientY / window.innerHeight);
     this.material.uniforms.u_clickTime.value = this.clickTime;
     this.material.uniforms.u_clickPosition.value.copy(this.clickPosition);
   
@@ -149,8 +153,9 @@ class App {
         const intersectionPoint = intersects[0].point;
         this.material.uniforms.u_clickPosition.value = intersectionPoint; // Usa Vector3
         this.material.uniforms.u_clickTime.value = this.clickTime;
-
-        this.elasticity = 0.5; // Activa la elasticidad
+        
+        // Activa la elasticidad al hacer el clic
+        this.elasticity = 1.0;
         this.material.uniforms.u_elasticity.value = this.elasticity; // Actualiza el uniforme
     } else {
         this.material.uniforms.u_clickTime.value = -1;
