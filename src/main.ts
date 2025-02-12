@@ -8,14 +8,14 @@ class App {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
-  private geometry: THREE.PlaneGeometry;
-  private material: THREE.ShaderMaterial;
+  private geometry: THREE.BoxGeometry; // Importante: BoxGeometry
+  private material: THREE.RawShaderMaterial;
   private mesh: THREE.Mesh;
   private startTime: number;
-  private startTime: number;
   private clickTime: number;
-  private clickPosition: THREE.Vector2;
-
+  private clickPosition: THREE.Vector3; // Vector3 para la posición 3D
+  private elasticity: number;
+  
   private camConfig = {
     fov: 75,
     aspect: window.innerWidth / window.innerHeight,
@@ -52,6 +52,7 @@ class App {
 
     // Create shader material
     this.geometry = new THREE.BoxGeometry(6, 6, 6);
+    this.elasticity = 0.0; // Inicializa la elasticidad
 
     this.material = new THREE.RawShaderMaterial({
       vertexShader,
@@ -65,9 +66,10 @@ class App {
         // custom uniforms
         u_time: { value: 0.0 },
         u_resolution: { value: resolution },
+        u_elasticity: { value: this.elasticity },
         u_texture: { value: this.texture },
         u_clickTime: { value: -1.0 },
-        u_clickPosition: { value: new THREE.Vector2(-1.0, -1.0) },
+        u_clickPosition: { value: new THREE.Vector3(-1.0, -1.0, -1.0) },
       },
       glslVersion: THREE.GLSL3,
       side: THREE.DoubleSide,
@@ -111,7 +113,12 @@ class App {
     this.material.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
     this.material.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
     this.material.uniforms.modelMatrix.value = this.mesh.matrixWorld; // Importante: usa la matriz del objeto
-  
+    
+    // Amortiguación
+    if (this.elasticity > 0.0) {
+      this.elasticity -= 0.02 * this.elasticity;
+      this.material.uniforms.u_elasticity.value = this.elasticity;
+    }
     this.renderer.render(this.scene, this.camera);
   }
   
@@ -128,6 +135,26 @@ class App {
     this.clickPosition.set(event.clientX / window.innerWidth, 1.0 - event.clientY / window.innerHeight);
     this.material.uniforms.u_clickTime.value = this.clickTime;
     this.material.uniforms.u_clickPosition.value.copy(this.clickPosition);
+  
+    const mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, this.camera);
+
+    const intersects = raycaster.intersectObjects(this.scene.children, true);
+
+    if (intersects.length > 0) {
+        const intersectionPoint = intersects[0].point;
+        this.material.uniforms.u_clickPosition.value = intersectionPoint; // Usa Vector3
+        this.material.uniforms.u_clickTime.value = this.clickTime;
+
+        this.elasticity = 0.5; // Activa la elasticidad
+        this.material.uniforms.u_elasticity.value = this.elasticity; // Actualiza el uniforme
+    } else {
+        this.material.uniforms.u_clickTime.value = -1;
+    }
   }
 }
 

@@ -6,23 +6,27 @@ uniform mat4 projectionMatrix;
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform float u_time;
-uniform float u_clickTime;
-uniform vec2 u_clickPosition;
+uniform float u_elasticity;
+
+out vec3 v_positionWorld;
+out float v_depth; // Para efectos visuales en el fragment shader
 
 void main() {
-  vec3 pos = position;
+    v_positionWorld = (modelMatrix * vec4(position, 1.0)).xyz;
 
-  if (u_clickTime >= 0.0) {
-    float t = u_time - u_clickTime;
-    if (t <= 1.0) {
-      vec2 clickPos = (u_clickPosition * 2.0 - 1.0) * vec2(projectionMatrix[0][0], projectionMatrix[1][1]);
-      float distance = length(pos.xy - clickPos);
-      float wave = sin(50.0 * distance - 5.0 * t) * exp(-5.0 * distance);
-      if (distance < 0.3) { 
-        pos.z += wave * 0.5;
-      }
-    }
-  }
+    vec3 pos = position;
 
-  gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(pos, 1.0);
+    // Múltiples ondas
+    float wave1 = sin(position.x * 10.0 + u_time * 5.0) * cos(position.y * 10.0 + u_time * 5.0) * u_elasticity;
+    float wave2 = 0.5 * sin(position.x * 20.0 + u_time * 10.0) * cos(position.y * 20.0 + u_time * 10.0) * u_elasticity;
+
+    // Distorsión direccional
+    float verticalDeformation = wave1 + wave2;
+    float horizontalDeformation = 0.5 * wave1 + 0.5 * wave2; // Menos deformación horizontal
+    pos.z += verticalDeformation * 0.8 + horizontalDeformation * 0.2;
+
+    gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(pos, 1.0);
+
+    // Calculamos la profundidad para usarla en el fragment shader
+    v_depth = gl_Position.z / gl_Position.w;
 }
