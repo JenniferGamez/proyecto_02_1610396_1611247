@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import * as dat from 'dat.gui';
+
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
 
 import vertexShader from './shaders/vertex.glsl';
@@ -8,22 +10,20 @@ class App {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
-  private geometry: THREE.BoxGeometry; // Importante: BoxGeometry
   private material: THREE.RawShaderMaterial;
   private mesh: THREE.Mesh;
   private startTime: number;
   private clickTime: number;
-  private clickPosition: THREE.Vector3; // Vector3 para la posición 3D
+  private clickPosition: THREE.Vector3;
   private elasticity: number;
-  
+  private params: { geometry: string };
+
   private camConfig = {
     fov: 75,
     aspect: window.innerWidth / window.innerHeight,
     near: 0.1,
     far: 1000,
   };
-
-  private texture: any;
 
   constructor() {
     // Create scene
@@ -50,10 +50,16 @@ class App {
 
     const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
 
+    // Controles GUI
+    const gui = new dat.GUI();
+    this.params = { geometry: 'cube' };
+    gui.add(this.params, 'geometry', ['cube', 'sphere', 'torus'])
+        .onChange(() => this.updateGeometry());
+    
     // Create shader material
-    this.geometry = new THREE.BoxGeometry(6, 6, 6);
     this.elasticity = 0.0; // Inicializa la elasticidad
-
+    
+    //this.geometry = new THREE.BoxGeometry(6, 6, 6);
     this.material = new THREE.RawShaderMaterial({
       vertexShader,
       fragmentShader,
@@ -83,14 +89,16 @@ class App {
       side: THREE.DoubleSide,
     });
 
-    // Create mesh: Water
-    this.mesh = new THREE.Mesh(this.geometry, this.material);
+    // Create mesh: Water - Cube geometry inicial
+    const geometry = new THREE.BoxGeometry(6, 6, 6);
+    this.mesh = new THREE.Mesh(geometry, this.material);
     this.mesh.rotation.y = Math.PI / 5;
     this.mesh.rotation.x = Math.PI / 6;
     this.mesh.position.y = 1;
     this.scene.add(this.mesh);
     this.camera.position.z = 9;
 
+    // Controls
     const controls = new OrbitControls(this.camera, canvas);
     controls.enableDamping = true;
 
@@ -111,6 +119,27 @@ class App {
 
     // Start the main loop
     this.animate();
+  }
+
+  private updateGeometry() {
+    this.mesh.geometry.dispose(); // Importante: Dispose de la geometría anterior
+    let newGeometry;
+
+    switch (this.params.geometry) {
+        case 'cube':
+            newGeometry = new THREE.BoxGeometry(6, 6, 6);
+            break;
+        case 'sphere':
+            newGeometry = new THREE.SphereGeometry(3, 32, 32); // Ajusta el radio según necesites
+            break;
+        case 'torus':
+            newGeometry = new THREE.TorusGeometry(3, 1, 32, 64); // Ajusta los parámetros del torus
+            break;
+        default:
+            newGeometry = new THREE.BoxGeometry(6, 6, 6); // Geometría por defecto
+    }
+
+    this.mesh.geometry = newGeometry; // Asigna la nueva geometría
   }
 
   private animate(): void {
