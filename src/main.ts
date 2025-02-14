@@ -3,8 +3,15 @@ import * as dat from 'dat.gui';
 
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
 
+// Material shaders 1
 import vertexShader from './shaders/vertex.glsl';
 import fragmentShader from './shaders/fragment.glsl';
+
+// Material shaders 2: Cube Gelatin
+import vertexGelatinShader from './shaders/vertexBlinn.glsl';
+import fragmentGelatinShader from './shaders/fragmentBlinn.glsl';
+
+// Material shaders 3: Shader creativo
 import vertexCreativeShader from './shaders/vertex_creative.glsl'; // Importa tus shaders creativos
 import fragmentCreativeShader from './shaders/fragment_creative.glsl';
 
@@ -18,6 +25,7 @@ class App {
   private clickPosition: THREE.Vector3;
   private elasticity: number;
   private params: { geometry: string, material: string };
+  private materialShader: THREE.RawShaderMaterial;
   private gelatinMaterial: THREE.RawShaderMaterial;
   private creativeMaterial: THREE.RawShaderMaterial;
   private materials: { [key: string]: THREE.RawShaderMaterial };
@@ -60,15 +68,28 @@ class App {
     this.params = { geometry: 'cube', material: 'gelatin' };
     gui.add(this.params, 'geometry', ['cube', 'sphere', 'torus'])
         .onChange(() => this.updateGeometry());
-    gui.add(this.params, 'material', ['gelatin', 'creative'])
+    gui.add(this.params, 'material', ['material_1' ,'gelatin', 'creative'])
         .onChange(() => this.switchMaterial())
 
     this.elasticity = 0.0;
 
-    // Material 1: Gelatin Cube ()
-    this.gelatinMaterial = new THREE.RawShaderMaterial({
+    // Material 1
+    const materialShader = new THREE.RawShaderMaterial({
       vertexShader,
       fragmentShader,
+      uniforms: {
+        u_time: { value: 0.0 },
+        u_smoothness: { value: 5.0 },
+        u_modelMatrix: { value: new THREE.Matrix4() },
+        u_viewMatrix: { value: new THREE.Matrix4() },
+        u_projectionMatrix: { value: new THREE.Matrix4() },
+      },
+    });
+
+    // Material 2: Binned Shader (Gelatin Cube)
+    this.gelatinMaterial = new THREE.RawShaderMaterial({
+      vertexShader: vertexGelatinShader,
+      fragmentShader: fragmentGelatinShader,
 
       transparent: true,
       uniforms: {
@@ -90,8 +111,8 @@ class App {
       glslVersion: THREE.GLSL3,
       side: THREE.DoubleSide,
     });
-    
-    // Material 2: Shader creativo (inflado + toon shading)
+
+    // Material 3: Shader creativo (inflado + toon shading)
     this.creativeMaterial = new THREE.RawShaderMaterial({
       vertexShader: vertexCreativeShader,
       fragmentShader: fragmentCreativeShader,
@@ -111,6 +132,7 @@ class App {
     
     // Lista de materiales para cambiar dinámicamente
     this.materials = {
+      //material_1: thismaterialShader,
       gelatin: this.gelatinMaterial,
       creative: this.creativeMaterial,
     };
@@ -124,7 +146,6 @@ class App {
 
     this.mesh.rotation.y = Math.PI / 5;
     this.mesh.rotation.x = Math.PI / 6;
-    this.mesh.position.y = 1;
     this.scene.add(this.mesh);
     this.camera.position.z = 9;
 
@@ -168,7 +189,7 @@ class App {
         material.uniforms.u_time = { value: 0.0 };
         material.uniforms.u_resolution = { value: resolution };
 
-        if (material === this.gelatinMaterial) {
+        if (material === this.materialShader) {
           material.uniforms.u_clickTime = { value: -1.0 };
           material.uniforms.u_elasticity = { value: this.elasticity };
           material.uniforms.u_clickPosition = { value: new THREE.Vector3(-1.0, -1.0, -1.0) };
@@ -177,6 +198,7 @@ class App {
           material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
           material.uniforms.u_lightColor = { value: new THREE.Color(0xffffff) };
           material.uniforms.u_objectColor = { value: new THREE.Color(0x00ff00) };
+        
         } else if (material === this.creativeMaterial) {
           material.uniforms.u_inflateAmount = { value: 0.2 };
           material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
@@ -227,7 +249,7 @@ class App {
     this.currentMaterial.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
 
     // Animaciones y cambios de parámetros de los materiales
-    if (this.currentMaterial === this.gelatinMaterial) {
+    if (this.currentMaterial === this.materialShader) {
         
       if (this.elasticity > 0.001) {
         this.elasticity -= 0.02 * this.elasticity;
