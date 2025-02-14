@@ -65,7 +65,7 @@ class App {
 
     this.elasticity = 0.0;
 
-    // Material 1: Gelatin Cube
+    // Material 1: Gelatin Cube ()
     this.gelatinMaterial = new THREE.RawShaderMaterial({
       vertexShader,
       fragmentShader,
@@ -82,8 +82,7 @@ class App {
         u_elasticity: { value: this.elasticity }, // Elasticidad	
         u_clickPosition: { value: new THREE.Vector3(-1.0, -1.0, -1.0) }, // Posición del click
         u_shininess: { value: 32.0 }, // Brillo del material
-        u_transparency: { value: 0.6 },
-        //u_jiggleIntensity: { value: 0.05 }, // Intensidad del temblequeo
+        u_transparency: { value: 0.6 }, // Transparencia del material
         u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
         u_lightColor: { value: new THREE.Color(0xffffff) }, // Color de la luz
         u_objectColor: { value: new THREE.Color(0x00ff00) }, // Color del objeto
@@ -148,46 +147,48 @@ class App {
     window.addEventListener('resize', this.onWindowResize);
     window.addEventListener('click', this.onDocumentClick);
 
+    this.initializeMaterials(); 
+
     // Start the main loop
     this.animate();
 
-    this.initializeMaterials(); 
   }
   	
   private initializeMaterials() {
     const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight); // Obtén la resolución AQUÍ.
 
     for (const materialName in this.materials) {
-        const material = this.materials[materialName];
-        if (material instanceof THREE.RawShaderMaterial) { // Asegúrate de que es un RawShaderMaterial.
-            material.uniforms.projectionMatrix = { value: this.camera.projectionMatrix };
-            material.uniforms.viewMatrix = { value: this.camera.matrixWorldInverse };
-            material.uniforms.modelMatrix = { value: new THREE.Matrix4() };
-            material.uniforms.cameraPosition = { value: this.camera.position };
-            material.uniforms.u_time = { value: 0.0 };
-            material.uniforms.u_resolution = { value: resolution };
+      const material = this.materials[materialName];
+      
+      if (material instanceof THREE.RawShaderMaterial) { // Asegúrate de que es un RawShaderMaterial.
+        material.uniforms.projectionMatrix = { value: this.camera.projectionMatrix };
+        material.uniforms.viewMatrix = { value: this.camera.matrixWorldInverse };
+        material.uniforms.modelMatrix = { value: new THREE.Matrix4() };
+        material.uniforms.cameraPosition = { value: this.camera.position };
+        material.uniforms.u_time = { value: 0.0 };
+        material.uniforms.u_resolution = { value: resolution };
 
-            if (material === this.gelatinMaterial) {
-                material.uniforms.u_clickTime = { value: -1.0 };
-                material.uniforms.u_elasticity = { value: this.elasticity };
-                material.uniforms.u_clickPosition = { value: new THREE.Vector3(-1.0, -1.0, -1.0) };
-                material.uniforms.u_shininess = { value: 32.0 };
-                material.uniforms.u_transparency = { value: 0.6 };
-                material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
-                material.uniforms.u_lightColor = { value: new THREE.Color(0xffffff) };
-                material.uniforms.u_objectColor = { value: new THREE.Color(0x00ff00) };
-            } else if (material === this.creativeMaterial) {
-                material.uniforms.u_inflateAmount = { value: 0.2 };
-                material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
-                material.uniforms.u_lightColor = { value: new THREE.Color(0x000000) };
-                material.uniforms.u_objectColor = { value: new THREE.Color(0xffffff) };
-            }
+        if (material === this.gelatinMaterial) {
+          material.uniforms.u_clickTime = { value: -1.0 };
+          material.uniforms.u_elasticity = { value: this.elasticity };
+          material.uniforms.u_clickPosition = { value: new THREE.Vector3(-1.0, -1.0, -1.0) };
+          material.uniforms.u_shininess = { value: 32.0 };
+          material.uniforms.u_transparency = { value: 0.6 };
+          material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
+          material.uniforms.u_lightColor = { value: new THREE.Color(0xffffff) };
+          material.uniforms.u_objectColor = { value: new THREE.Color(0x00ff00) };
+        } else if (material === this.creativeMaterial) {
+          material.uniforms.u_inflateAmount = { value: 0.2 };
+          material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
+          material.uniforms.u_lightColor = { value: new THREE.Color(0x000000) };
+          material.uniforms.u_objectColor = { value: new THREE.Color(0xffffff) };
         }
+      }
     }
   }
 
   private updateGeometry() {
-    this.mesh.geometry.dispose(); // Importante: Dispose de la geometría anterior
+    this.mesh.geometry.dispose();
     let newGeometry;
 
     switch (this.params.geometry) {
@@ -195,13 +196,13 @@ class App {
             newGeometry = new THREE.BoxGeometry(6, 6, 6);
             break;
         case 'sphere':
-            newGeometry = new THREE.SphereGeometry(3, 32, 32); // Ajusta el radio según necesites
+            newGeometry = new THREE.SphereGeometry(3, 32, 32);
             break;
         case 'torus':
-            newGeometry = new THREE.TorusGeometry(3, 1, 32, 64); // Ajusta los parámetros del torus
+            newGeometry = new THREE.TorusGeometry(3, 1, 32, 64);
             break;
         default:
-            newGeometry = new THREE.BoxGeometry(6, 6, 6); // Geometría por defecto
+            newGeometry = new THREE.BoxGeometry(6, 6, 6);
     }
 
     this.mesh.geometry = newGeometry;
@@ -217,37 +218,34 @@ class App {
     requestAnimationFrame(this.animate.bind(this));
     const elapsedTime = (Date.now() - this.startTime) / 1000;
 
-    // *** KEY CHANGE: Update modelMatrix HERE ***
-    this.mesh.updateMatrixWorld(); // Important: Update the world matrix
+    this.mesh.updateMatrixWorld();
     this.currentMaterial.uniforms.modelMatrix.value.copy(this.mesh.matrixWorld);
 
     this.currentMaterial.uniforms.u_time.value = elapsedTime;
     this.currentMaterial.uniforms.cameraPosition.value = this.camera.position;
     this.currentMaterial.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
     this.currentMaterial.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
-    //this.currentMaterial.uniforms.modelMatrix.value = this.mesh.matrixWorld;
 
     // Animaciones y cambios de parámetros de los materiales
     if (this.currentMaterial === this.gelatinMaterial) {
         
-        if (this.elasticity > 0.001) {
-            this.elasticity -= 0.02 * this.elasticity;
-            this.currentMaterial.uniforms.u_elasticity.value = this.elasticity;
-        } else {
-            this.elasticity = 0.0;
-            this.currentMaterial.uniforms.u_elasticity.value = this.elasticity;
-        }
+      if (this.elasticity > 0.001) {
+        this.elasticity -= 0.02 * this.elasticity;
+        this.currentMaterial.uniforms.u_elasticity.value = this.elasticity;
+      } else {
+        this.elasticity = 0.0;
+        this.currentMaterial.uniforms.u_elasticity.value = this.elasticity;
+      }
 
-        const shininess = 16.0 + Math.cos(elapsedTime * 2) * 8;
-        const transparency = 0.5 + Math.sin(elapsedTime * 2) * 0.1;
-        this.currentMaterial.uniforms.u_shininess.value = shininess;
-        this.currentMaterial.uniforms.u_transparency.value = transparency;
-   
-      } else if (this.currentMaterial === this.creativeMaterial) {
-        // Material creativo (inflado)
-        const inflateAmount = 0.2 + Math.sin(elapsedTime * 2.0) * 0.1; // Ejemplo de animación
-        this.currentMaterial.uniforms.u_inflateAmount.value = inflateAmount;
-
+      const shininess = 16.0 + Math.cos(elapsedTime * 2) * 8;
+      const transparency = 0.5 + Math.sin(elapsedTime * 2) * 0.1;
+      this.currentMaterial.uniforms.u_shininess.value = shininess;
+      this.currentMaterial.uniforms.u_transparency.value = transparency;
+  
+    } else if (this.currentMaterial === this.creativeMaterial) {
+      // Material creativo (inflado)
+      const inflateAmount = 0.2 + Math.sin(elapsedTime * 2.0) * 0.1; // Ejemplo de animación
+      this.currentMaterial.uniforms.u_inflateAmount.value = inflateAmount;
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -277,43 +275,35 @@ class App {
     const intersects = raycaster.intersectObjects(this.scene.children, true);
 
     if (intersects.length > 0) {
-        const intersectedObject = intersects[0].object;
+      const intersectedObject = intersects[0].object;
 
-        if (intersectedObject instanceof THREE.Mesh && intersectedObject.material instanceof THREE.RawShaderMaterial) {
-            const currentMaterial = intersectedObject.material as THREE.RawShaderMaterial;
+      if (intersectedObject instanceof THREE.Mesh && intersectedObject.material instanceof THREE.RawShaderMaterial) {
+        const currentMaterial = intersectedObject.material as THREE.RawShaderMaterial;
 
-            if (currentMaterial.uniforms.u_clickPosition) {
-                currentMaterial.uniforms.u_clickPosition.value = intersects[0].point;
-            } else {
-                console.warn("El uniform u_clickPosition no está definido en el material.");
-            }
-
-            if (currentMaterial.uniforms.u_clickTime) {
-                currentMaterial.uniforms.u_clickTime.value = this.clickTime;
-            } else {
-                console.warn("El uniform u_clickTime no está definido en el material.");
-            }
-
-            if (currentMaterial.uniforms.u_elasticity) {
-                this.elasticity = 1.0;
-                currentMaterial.uniforms.u_elasticity.value = this.elasticity;
-            } else {
-                console.warn("El uniform u_elasticity no está definido en el material.");
-            }
-        } else {
-            console.warn("El objeto ক্লিকado no tiene un material RawShaderMaterial.");
+        if (currentMaterial.uniforms.u_clickPosition) {
+          currentMaterial.uniforms.u_clickPosition.value = intersects[0].point;
         }
+
+        if (currentMaterial.uniforms.u_clickTime) {
+          currentMaterial.uniforms.u_clickTime.value = this.clickTime;
+        }
+
+        if (currentMaterial.uniforms.u_elasticity) {
+          this.elasticity = 1.0;
+          currentMaterial.uniforms.u_elasticity.value = this.elasticity;
+        } 
+      }
+
     } else {
 
-        if (this.mesh.material && this.mesh.material instanceof THREE.RawShaderMaterial) {
-            const currentMaterial = this.mesh.material as THREE.RawShaderMaterial;
-            if (currentMaterial.uniforms.u_clickTime) {
-                currentMaterial.uniforms.u_clickTime.value = -1;
-            }
+      if (this.mesh.material && this.mesh.material instanceof THREE.RawShaderMaterial) {
+        const currentMaterial = this.mesh.material as THREE.RawShaderMaterial;
+        if (currentMaterial.uniforms.u_clickTime) {
+          currentMaterial.uniforms.u_clickTime.value = -1;
         }
+      }
     }
   }
-
 }
 
 const myApp = new App();
