@@ -5,18 +5,23 @@ import { OrbitControls } from 'three/examples/jsm/Addons.js';
 
 import vertexShader from './shaders/vertex.glsl';
 import fragmentShader from './shaders/fragment.glsl';
+import vertexCreativeShader from './shaders/vertex_creative.glsl'; // Importa tus shaders creativos
+import fragmentCreativeShader from './shaders/fragment_creative.glsl';
 
 class App {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
-  private waveMaterial: THREE.RawShaderMaterial;
   private mesh: THREE.Mesh;
   private startTime: number;
   private clickTime: number;
   private clickPosition: THREE.Vector3;
   private elasticity: number;
-  private params: { geometry: string };
+  private params: { geometry: string, material: string };
+  private gelatinMaterial: THREE.RawShaderMaterial;
+  private creativeMaterial: THREE.RawShaderMaterial;
+  private materials: { [key: string]: THREE.RawShaderMaterial };
+  private currentMaterial: THREE.RawShaderMaterial;
 
   private camConfig = {
     fov: 75,
@@ -52,14 +57,16 @@ class App {
 
     // Controles GUI
     const gui = new dat.GUI();
-    this.params = { geometry: 'cube' };
+    this.params = { geometry: 'cube', material: 'gelatin' };
     gui.add(this.params, 'geometry', ['cube', 'sphere', 'torus'])
         .onChange(() => this.updateGeometry());
-    
+    gui.add(this.params, 'material', ['gelatin', 'creative'])
+        .onChange(() => this.switchMaterial())
+
     this.elasticity = 0.0;
 
-    // Create shader material
-    this.waveMaterial = new THREE.RawShaderMaterial({
+    // Material 1: Gelatin Cube
+    this.gelatinMaterial = new THREE.RawShaderMaterial({
       vertexShader,
       fragmentShader,
 
@@ -84,10 +91,38 @@ class App {
       glslVersion: THREE.GLSL3,
       side: THREE.DoubleSide,
     });
+    
+    // Material 2: Shader creativo (inflado + toon shading)
+    this.creativeMaterial = new THREE.RawShaderMaterial({
+      vertexShader: vertexCreativeShader,
+      fragmentShader: fragmentCreativeShader,
+      transparent: true,
+      uniforms: {
+        u_time: { value: 0.0 },
+        u_resolution: { value: resolution },
+        u_inflateAmount: { value: 0.2 },
+        u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
+        u_lightColor: { value: new THREE.Color(0x000000) },
+        u_objectColor: { value: new THREE.Color(0xffffff) },
+        cameraPosition: { value: this.camera.position },
+      },
+      glslVersion: THREE.GLSL3,
+      side: THREE.DoubleSide,
+    });
+    
+    // Lista de materiales para cambiar dinámicamente
+    this.materials = {
+      gelatin: this.gelatinMaterial,
+      creative: this.creativeMaterial,
+    };
+    this.currentMaterial = this.materials['gelatin'];
 
     // Create mesh: Water - Cube geometry inicial
     const geometry = new THREE.BoxGeometry(6, 6, 6);
-    this.mesh = new THREE.Mesh(geometry, this.waveMaterial);
+    
+    // Material actual - Inicializa con el primer material
+    this.mesh = new THREE.Mesh(geometry, this.currentMaterial);
+
     this.mesh.rotation.y = Math.PI / 5;
     this.mesh.rotation.x = Math.PI / 6;
     this.mesh.position.y = 1;
@@ -135,40 +170,50 @@ class App {
             newGeometry = new THREE.BoxGeometry(6, 6, 6); // Geometría por defecto
     }
 
-    this.mesh.geometry = newGeometry; // Asigna la nueva geometría
+    this.mesh.geometry = newGeometry;
+    this.mesh.material = this.currentMaterial;
   }
 
-  private animate(): void {
-    requestAnimationFrame(this.animate);
-    const elapsedTime = (Date.now() - this.startTime) / 1000;
-    this.waveMaterial.uniforms.u_time.value = elapsedTime;
+  private switchMaterial() {
+    this.currentMaterial = this.materials[this.params.material];
+    this.mesh.material = this.currentMaterial;
+  }
   
-    // Actualiza las matrices en cada frame
-    this.waveMaterial.uniforms.cameraPosition.value = this.camera.position;
-    this.waveMaterial.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
-    this.waveMaterial.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
-    this.waveMaterial.uniforms.modelMatrix.value = this.mesh.matrixWorld; // Importante: usa la matriz del objeto
-    
-    // Amortiguación
-    if (this.elasticity > 0.001) {
-      this.elasticity -= 0.02 * this.elasticity;
-      this.waveMaterial.uniforms.u_elasticity.value = this.elasticity;
-    } else {
-      this.elasticity = 0.0; // Asegura que la elasticidad llegue a cero
-      this.waveMaterial.uniforms.u_elasticity.value = this.elasticity;
+  private animate(): void {
+    requestAnimationFrame(this.animate.bind(this));
+    const elapsedTime = (Date.now() - this.startTime) / 1000;
+
+    this.currentMaterial.uniforms.u_time.value = elapsedTime;
+    this.currentMaterial.uniforms.cameraPosition.value = this.camera.position;
+    this.currentMaterial.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
+    this.currentMaterial.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
+    this.currentMaterial.uniforms.modelMatrix.value = this.mesh.matrixWorld;
+
+    // Animaciones y cambios de parámetros de los materiales
+    if (this.currentMaterial === this.gelatinMaterial) {
+        
+        if (this.elasticity > 0.001) {
+            this.elasticity -= 0.02 * this.elasticity;
+            this.currentMaterial.uniforms.u_elasticity.value = this.elasticity;
+        } else {
+            this.elasticity = 0.0;
+            this.currentMaterial.uniforms.u_elasticity.value = this.elasticity;
+        }
+
+        const shininess = 16.0 + Math.cos(elapsedTime * 2) * 8;
+        const transparency = 0.5 + Math.sin(elapsedTime * 2) * 0.1;
+        this.currentMaterial.uniforms.u_shininess.value = shininess;
+        this.currentMaterial.uniforms.u_transparency.value = transparency;
+   
+      } else if (this.currentMaterial === this.creativeMaterial) {
+        // Material creativo (inflado)
+        const inflateAmount = 0.2 + Math.sin(elapsedTime * 2.0) * 0.1; // Ejemplo de animación
+        this.currentMaterial.uniforms.u_inflateAmount.value = inflateAmount;
+
     }
-
-    //const jiggleIntensity = 0.03 + Math.sin(elapsedTime * 4) * 0.015; // Rango: 0.015 a 0.045
-    const shininess = 16.0 + Math.cos(elapsedTime * 2) * 8; // Rango: 8 a 24
-    const transparency = 0.5 + Math.sin(elapsedTime * 2) * 0.1; // Rango: 0.4 a 0.6
-
-    //this.waveMaterial.uniforms.u_jiggleIntensity.value = jiggleIntensity;
-    this.waveMaterial.uniforms.u_shininess.value = shininess;
-    this.waveMaterial.uniforms.u_transparency.value = transparency;
 
     this.renderer.render(this.scene, this.camera);
   }
-  
 
   private onWindowResize(): void {
     const width = window.innerWidth;
@@ -177,15 +222,12 @@ class App {
 
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.waveMaterial.uniforms.u_resolution.value.set(width, height);
+    this.currentMaterial.uniforms.u_resolution.value.set(width, height);
   }
 
   private onDocumentClick(event: MouseEvent): void {
     this.clickTime = (Date.now() - this.startTime) / 1000;
-    //this.clickPosition.set(event.clientX / window.innerWidth, 1.0 - event.clientY / window.innerHeight);
-    this.waveMaterial.uniforms.u_clickTime.value = this.clickTime;
-    this.waveMaterial.uniforms.u_clickPosition.value.copy(this.clickPosition);
-  
+    
     const mouse = new THREE.Vector2();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -196,15 +238,19 @@ class App {
     const intersects = raycaster.intersectObjects(this.scene.children, true);
 
     if (intersects.length > 0) {
-        const intersectionPoint = intersects[0].point;
-        this.waveMaterial.uniforms.u_clickPosition.value = intersectionPoint; // Usa Vector3
-        this.waveMaterial.uniforms.u_clickTime.value = this.clickTime;
+      const intersectionPoint = intersects[0].point;
 
-        // Activa la elasticidad
-        this.elasticity = 1.0; 
-        this.waveMaterial.uniforms.u_elasticity.value = this.elasticity; // Actualiza el uniforme
+      const currentMaterial = this.mesh.material as THREE.RawShaderMaterial;
+
+      currentMaterial.uniforms.u_clickPosition.value = intersectionPoint;
+      currentMaterial.uniforms.u_clickTime.value = this.clickTime;
+
+      this.elasticity = 1.0;
+      currentMaterial.uniforms.u_elasticity.value = this.elasticity;
+    
     } else {
-        this.waveMaterial.uniforms.u_clickTime.value = -1;
+        const currentMaterial = this.mesh.material as THREE.RawShaderMaterial;
+        currentMaterial.uniforms.u_clickTime.value = -1;
     }
   }
 }
