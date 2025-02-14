@@ -183,11 +183,15 @@ class App {
     requestAnimationFrame(this.animate.bind(this));
     const elapsedTime = (Date.now() - this.startTime) / 1000;
 
+    // *** KEY CHANGE: Update modelMatrix HERE ***
+    this.mesh.updateMatrixWorld(); // Important: Update the world matrix
+    this.currentMaterial.uniforms.modelMatrix.value.copy(this.mesh.matrixWorld);
+
     this.currentMaterial.uniforms.u_time.value = elapsedTime;
     this.currentMaterial.uniforms.cameraPosition.value = this.camera.position;
     this.currentMaterial.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
     this.currentMaterial.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
-    this.currentMaterial.uniforms.modelMatrix.value = this.mesh.matrixWorld;
+    //this.currentMaterial.uniforms.modelMatrix.value = this.mesh.matrixWorld;
 
     // Animaciones y cambios de parámetros de los materiales
     if (this.currentMaterial === this.gelatinMaterial) {
@@ -239,7 +243,7 @@ class App {
 
     if (intersects.length > 0) {
       const intersectionPoint = intersects[0].point;
-
+      
       const currentMaterial = this.mesh.material as THREE.RawShaderMaterial;
 
       currentMaterial.uniforms.u_clickPosition.value = intersectionPoint;
