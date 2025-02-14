@@ -10,7 +10,7 @@ class App {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
-  private material: THREE.RawShaderMaterial;
+  private waveMaterial: THREE.RawShaderMaterial;
   private mesh: THREE.Mesh;
   private startTime: number;
   private clickTime: number;
@@ -56,11 +56,10 @@ class App {
     gui.add(this.params, 'geometry', ['cube', 'sphere', 'torus'])
         .onChange(() => this.updateGeometry());
     
+    this.elasticity = 0.0;
+
     // Create shader material
-    this.elasticity = 0.0; // Inicializa la elasticidad
-    
-    //this.geometry = new THREE.BoxGeometry(6, 6, 6);
-    this.material = new THREE.RawShaderMaterial({
+    this.waveMaterial = new THREE.RawShaderMaterial({
       vertexShader,
       fragmentShader,
 
@@ -69,21 +68,18 @@ class App {
         projectionMatrix: { value: this.camera.projectionMatrix },
         viewMatrix: { value: this.camera.matrixWorldInverse },
         modelMatrix: { value: new THREE.Matrix4() },
-        // custom uniforms
+        cameraPosition: { value: this.camera.position },
         u_time: { value: 0.0 },
         u_resolution: { value: resolution },
-        u_elasticity: { value: this.elasticity },
-        //u_texture: { value: this.texture },
-        u_clickTime: { value: -1.0 },
-        u_clickPosition: { value: new THREE.Vector3(-1.0, -1.0, -1.0) },
-        // ... (tus uniforms existentes)
-        u_shininess: { value: 32.0 }, // Ajusta el brillo (valores altos = brillo más pequeño)
-        u_transparency: { value: 0.6 }, // Ajusta la transparencia (0.0 - 1.0)
-        u_jiggleIntensity: { value: 0.05 }, // Intensidad del temblequeo
-        u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() }, // Ejemplo de dirección de la luz
+        u_clickTime: { value: -1.0 }, // Tiempo del click
+        u_elasticity: { value: this.elasticity }, // Elasticidad	
+        u_clickPosition: { value: new THREE.Vector3(-1.0, -1.0, -1.0) }, // Posición del click
+        u_shininess: { value: 32.0 }, // Brillo del material
+        u_transparency: { value: 0.6 },
+        //u_jiggleIntensity: { value: 0.05 }, // Intensidad del temblequeo
+        u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
         u_lightColor: { value: new THREE.Color(0xffffff) }, // Color de la luz
-        u_objectColor: { value: new THREE.Color(0x00ff00) }, // Color del objeto (verde en este ejemplo)
-        cameraPosition: { value: this.camera.position }, // Posición de la cámara
+        u_objectColor: { value: new THREE.Color(0x00ff00) }, // Color del objeto
       },
       glslVersion: THREE.GLSL3,
       side: THREE.DoubleSide,
@@ -91,7 +87,7 @@ class App {
 
     // Create mesh: Water - Cube geometry inicial
     const geometry = new THREE.BoxGeometry(6, 6, 6);
-    this.mesh = new THREE.Mesh(geometry, this.material);
+    this.mesh = new THREE.Mesh(geometry, this.waveMaterial);
     this.mesh.rotation.y = Math.PI / 5;
     this.mesh.rotation.x = Math.PI / 6;
     this.mesh.position.y = 1;
@@ -145,38 +141,30 @@ class App {
   private animate(): void {
     requestAnimationFrame(this.animate);
     const elapsedTime = (Date.now() - this.startTime) / 1000;
-    this.material.uniforms.u_time.value = elapsedTime;
+    this.waveMaterial.uniforms.u_time.value = elapsedTime;
   
     // Actualiza las matrices en cada frame
-    this.material.uniforms.cameraPosition.value = this.camera.position;
-    this.material.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
-    this.material.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
-    this.material.uniforms.modelMatrix.value = this.mesh.matrixWorld; // Importante: usa la matriz del objeto
+    this.waveMaterial.uniforms.cameraPosition.value = this.camera.position;
+    this.waveMaterial.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
+    this.waveMaterial.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
+    this.waveMaterial.uniforms.modelMatrix.value = this.mesh.matrixWorld; // Importante: usa la matriz del objeto
     
     // Amortiguación
     if (this.elasticity > 0.001) {
       this.elasticity -= 0.02 * this.elasticity;
-      this.material.uniforms.u_elasticity.value = this.elasticity;
+      this.waveMaterial.uniforms.u_elasticity.value = this.elasticity;
     } else {
       this.elasticity = 0.0; // Asegura que la elasticidad llegue a cero
-      this.material.uniforms.u_elasticity.value = this.elasticity;
+      this.waveMaterial.uniforms.u_elasticity.value = this.elasticity;
     }
 
-    // *** NUEVO: Actualización de las uniforms de efectos ***
-    // Puedes usar Math.sin, Math.cos o cualquier otra función para variar los valores
-    // de las uniforms con el tiempo.  ¡Experimenta con diferentes valores!
-
-    const jiggleIntensity = 0.03 + Math.sin(elapsedTime * 4) * 0.015; // Rango: 0.015 a 0.045
+    //const jiggleIntensity = 0.03 + Math.sin(elapsedTime * 4) * 0.015; // Rango: 0.015 a 0.045
     const shininess = 16.0 + Math.cos(elapsedTime * 2) * 8; // Rango: 8 a 24
     const transparency = 0.5 + Math.sin(elapsedTime * 2) * 0.1; // Rango: 0.4 a 0.6
 
-    this.material.uniforms.u_jiggleIntensity.value = jiggleIntensity;
-    this.material.uniforms.u_shininess.value = shininess;
-    this.material.uniforms.u_transparency.value = transparency;
-
-    // Si quieres variar la refracción y dispersión:
-    // this.material.uniforms.u_refractionIntensity.value = 0.1 + Math.sin(elapsedTime) * 0.05;
-    // this.material.uniforms.u_dispersionIntensity.value = 0.1 + Math.cos(elapsedTime) * 0.05;
+    //this.waveMaterial.uniforms.u_jiggleIntensity.value = jiggleIntensity;
+    this.waveMaterial.uniforms.u_shininess.value = shininess;
+    this.waveMaterial.uniforms.u_transparency.value = transparency;
 
     this.renderer.render(this.scene, this.camera);
   }
@@ -189,14 +177,14 @@ class App {
 
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.material.uniforms.u_resolution.value.set(width, height);
+    this.waveMaterial.uniforms.u_resolution.value.set(width, height);
   }
 
   private onDocumentClick(event: MouseEvent): void {
     this.clickTime = (Date.now() - this.startTime) / 1000;
     //this.clickPosition.set(event.clientX / window.innerWidth, 1.0 - event.clientY / window.innerHeight);
-    this.material.uniforms.u_clickTime.value = this.clickTime;
-    this.material.uniforms.u_clickPosition.value.copy(this.clickPosition);
+    this.waveMaterial.uniforms.u_clickTime.value = this.clickTime;
+    this.waveMaterial.uniforms.u_clickPosition.value.copy(this.clickPosition);
   
     const mouse = new THREE.Vector2();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -209,14 +197,14 @@ class App {
 
     if (intersects.length > 0) {
         const intersectionPoint = intersects[0].point;
-        this.material.uniforms.u_clickPosition.value = intersectionPoint; // Usa Vector3
-        this.material.uniforms.u_clickTime.value = this.clickTime;
+        this.waveMaterial.uniforms.u_clickPosition.value = intersectionPoint; // Usa Vector3
+        this.waveMaterial.uniforms.u_clickTime.value = this.clickTime;
 
         // Activa la elasticidad
         this.elasticity = 1.0; 
-        this.material.uniforms.u_elasticity.value = this.elasticity; // Actualiza el uniforme
+        this.waveMaterial.uniforms.u_elasticity.value = this.elasticity; // Actualiza el uniforme
     } else {
-        this.material.uniforms.u_clickTime.value = -1;
+        this.waveMaterial.uniforms.u_clickTime.value = -1;
     }
   }
 }

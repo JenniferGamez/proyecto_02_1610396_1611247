@@ -42,12 +42,6 @@ void main() {
 
     v_depth = gl_Position.z / gl_Position.w;
 
-    // *** Cálculo de la normal (si es necesaria para iluminación) ***
-    // Si vas a usar iluminación, calcula la normal aquí.  Este ejemplo es básico:
-    //vec3 tangent = dFdx(pos);
-    //vec3 bitangent = dFdy(pos);
-    //v_normal = normalize(cross(tangent, bitangent));
-
-    // Si tienes normales por vértice precalculadas, puedes hacer:
-    v_normal = mat3(modelMatrix) * normal; //Transforma las normales al espacio mundo
+    //Transforma las normales al espacio mundo
+    v_normal = mat3(modelMatrix) * normal;
 }
