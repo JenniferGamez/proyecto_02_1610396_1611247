@@ -1,27 +1,33 @@
+// #version 300 es
 precision highp float;
 
-in vec3 a_position;
+// Varyings de salida
+in vec3 position;
+in vec3 normal;
 
-uniform mat4 u_modelMatrix;
-uniform mat4 u_viewMatrix;
-uniform mat4 u_projectionMatrix;
+// Uniforms
+uniform mat4 projectionMatrix;
+uniform mat4 modelMatrix;
+uniform mat4 viewMatrix;
 
-uniform float u_time;
-uniform float u_smoothness;
+uniform float u_smoothness; // Control de suavidad
+uniform float u_time; // Tiempo para la animación
 
-out vec3 v_position;
+// Varyings de salida
+out vec3 v_positionWorld;
+out vec3 v_normal;
 
 void main() {
-    vec3 position = a_position;
+    vec3 smoothedPosition = position;
 
-    // Calcula la deformación basada en el tiempo y la suavidad.
-    // Puedes ajustar la intensidad de la deformación multiplicando por un escalar.
-    float deformation = sin(position.x * u_smoothness + u_time) * 0.2; 
+    // Ejemplo de suavizado (puedes mejorarlo):
+    // Este ejemplo mueve los vértices en una onda sinusoidal
+    // Puedes experimentar con diferentes funciones y valores para lograr el efecto deseado
+    float displacement = sin(position.x * 5.0 + u_time * 2.0) * u_smoothness * 0.5;
+    smoothedPosition.y += displacement;
 
-    position.z += deformation; // Aplica la deformación en el eje Z.
+    v_positionWorld = (modelMatrix * vec4(smoothedPosition, 1.0)).xyz;
+    v_normal = mat3(modelMatrix) * normal;
 
-    vec4 worldPosition = u_modelMatrix * vec4(position, 1.0);
-    gl_Position = u_projectionMatrix * u_viewMatrix * worldPosition;
-
-    v_position = worldPosition.xyz;
+    gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(smoothedPosition, 1.0);
 }

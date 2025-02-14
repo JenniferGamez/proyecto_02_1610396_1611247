@@ -24,13 +24,18 @@ class App {
   private clickTime: number;
   private clickPosition: THREE.Vector3;
   private elasticity: number;
-  private params: { geometry: string, material: string };
+  private params: { geometry: string, material: string, time: number };
   private materialVertex: THREE.RawShaderMaterial;
   private gelatinMaterial: THREE.RawShaderMaterial;
   private creativeMaterial: THREE.RawShaderMaterial;
   private materials: { [key: string]: THREE.RawShaderMaterial };
   private currentMaterial: THREE.RawShaderMaterial;
+  // GUI
   private gui: dat.GUI;
+  private materialVertexFolder: dat.GUI; // Carpeta para materialVertex
+  private gelatinFolder: dat.GUI; // Carpeta para gelatina
+  private creativeFolder: dat.GUI; // Carpeta para creativo
+  private time: number;
 
   private camConfig = {
     fov: 75,
@@ -65,18 +70,19 @@ class App {
     const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
 
     // Material 1
+    this.time = 0.5;
     this.materialVertex = new THREE.RawShaderMaterial({
       vertexShader,
       fragmentShader,
       uniforms: {
-          u_time: { value: 0.0 },
-          u_smoothness: { value: 5.0 }, // Valor inicial de suavidad
+          u_time: { value: this.time },
+          u_smoothness: { value: 1.0 },
           u_modelMatrix: { value: new THREE.Matrix4() },
           u_viewMatrix: { value: new THREE.Matrix4() },
           u_projectionMatrix: { value: new THREE.Matrix4() },
       },
       glslVersion: THREE.GLSL3,
-  });
+    });
 
     // Material 2: Binned Shader (Gelatin Cube)
     this.elasticity = 0.0;
@@ -141,13 +147,22 @@ class App {
 
     // Controles GUI
     this.gui = new dat.GUI();
-    this.params = { geometry: 'cube', material: 'gelatin' };
+    this.params = { geometry: 'cube', material: 'gelatin', time: 0.5 };
     this.gui.add(this.params, 'geometry', ['cube', 'sphere', 'torus'])
         .onChange(() => this.updateGeometry());
     this.gui.add(this.params, 'material', ['materialVertex' ,'gelatin', 'creative'])
         .onChange(() => this.switchMaterial())
-    
 
+    // Carpetas para cada material
+    this.materialVertexFolder = this.gui.addFolder("Material Vertex");
+    this.materialVertexFolder.hide();
+
+    this.gelatinFolder = this.gui.addFolder("Gelatina");
+    this.gelatinFolder.hide();
+
+    this.creativeFolder = this.gui.addFolder("Creativo");
+    this.creativeFolder.hide();
+    
     // Controls
     const controls = new OrbitControls(this.camera, canvas);
     controls.enableDamping = true;
@@ -180,7 +195,7 @@ class App {
     for (const materialName in this.materials) {
       const material = this.materials[materialName];
       
-      if (material instanceof THREE.RawShaderMaterial) { // Asegúrate de que es un RawShaderMaterial.
+      if ( material instanceof THREE.RawShaderMaterial ) { // Asegúrate de que es un RawShaderMaterial.
         material.uniforms.projectionMatrix = { value: this.camera.projectionMatrix };
         material.uniforms.viewMatrix = { value: this.camera.matrixWorldInverse };
         material.uniforms.modelMatrix = { value: new THREE.Matrix4() };
@@ -188,7 +203,7 @@ class App {
         material.uniforms.u_time = { value: 0.0 };
         material.uniforms.u_resolution = { value: resolution };
 
-        if (material === this.gelatinMaterial) {
+        if ( material === this.gelatinMaterial ) {
           material.uniforms.u_clickTime = { value: -1.0 };
           material.uniforms.u_elasticity = { value: this.elasticity };
           material.uniforms.u_clickPosition = { value: new THREE.Vector3(-1.0, -1.0, -1.0) };
@@ -198,14 +213,17 @@ class App {
           material.uniforms.u_lightColor = { value: new THREE.Color(0xffffff) };
           material.uniforms.u_objectColor = { value: new THREE.Color(0x00ff00) };
         
-        } else if (material === this.creativeMaterial) {
+        } else if ( material === this.creativeMaterial ) {
           material.uniforms.u_inflateAmount = { value: 0.2 };
           material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
           material.uniforms.u_lightColor = { value: new THREE.Color(0x000000) };
           material.uniforms.u_objectColor = { value: new THREE.Color(0xffffff) };
         
-        } else if (material === this.materialVertex) {
-          material.uniforms.u_smoothness = { value: 5.0 };
+        } else if ( material === this.materialVertex ) {
+          material.uniforms.u_smoothness = { value: 1.0 };
+          material.uniforms.u_modelMatrix = { value: new THREE.Matrix4() }; // Inicializa u_modelMatrix
+          material.uniforms.u_viewMatrix = { value: new THREE.Matrix4() }; // Inicializa u_viewMatrix
+          material.uniforms.u_projectionMatrix = { value: new THREE.Matrix4() }; // Inicializa u_projectionMatrix
         }
       }
     }
@@ -237,25 +255,47 @@ class App {
     this.currentMaterial = this.materials[this.params.material];
     this.mesh.material = this.currentMaterial;
 
-    // Update GUI controls based on the selected material
-    if (this.currentMaterial === this.materialVertex) {
-      // Show vertex material controls
-      // ... (code to show controls for vertex material)
-      this.gui.add(this.materialVertex.uniforms.u_smoothness, 'value', 1, 20, 0.1)
-        .name('Suavidad')
-        .onChange(() => {
-            this.materialVertex.uniforms.u_smoothness.value = parseFloat(this.materialVertex.uniforms.u_smoothness.value);
-        });
-      console.log('Material Vertex');
-    } else if (this.currentMaterial === this.gelatinMaterial) {
-        // Show gelatin material controls
-        // ... (code to show controls for gelatin material)
+    // Limpia los controles anteriores (excepto el de geometría y material)
+    for (let i = this.gui.__controllers.length - 1; i >= 0; i--) {
+      const controller = this.gui.__controllers[i];
+      if (controller.property !== 'geometry' && controller.property !== 'material') {
+          this.gui.remove(controller);
+      }
+    }
 
-        console.log('Material Gelatina');
+    // Oculta todas las carpetas y limpia sus controles
+    this.materialVertexFolder.hide();
+    for (let i = this.materialVertexFolder.__controllers.length - 1; i >= 0; i--) {
+        this.materialVertexFolder.remove(this.materialVertexFolder.__controllers[i]);
+    }
+
+    this.gelatinFolder.hide();
+    for (let i = this.gelatinFolder.__controllers.length - 1; i >= 0; i--) {
+        this.gelatinFolder.remove(this.gelatinFolder.__controllers[i]);
+    }
+
+    this.creativeFolder.hide();
+    for (let i = this.creativeFolder.__controllers.length - 1; i >= 0; i--) {
+        this.creativeFolder.remove(this.creativeFolder.__controllers[i]);
+    }
+
+    // Muestra la carpeta y añade los controles según el material
+    if (this.currentMaterial === this.materialVertex) {
+      this.materialVertexFolder.show();
+      if (this.materialVertexFolder.__controllers.length === 0) {
+        this.materialVertexFolder.add(this.materialVertex.uniforms.u_smoothness, 'value', 1, 5, 0.1).name('Suavidad');
+        this.materialVertexFolder.add(this.params, 'time', 0.1, 10, 0.01).name('Tiempo');
+      }
+      console.log('Material Vertex');
+
+    } else if (this.currentMaterial === this.gelatinMaterial) {
+      this.gelatinFolder.show();
+      // Añade aquí los controles para el material de gelatina si es necesario
+      console.log('Material Gelatina');
     } else if (this.currentMaterial === this.creativeMaterial) {
-        // Show creative material controls
-        // ... (code to show controls for creative material)
-        console.log('Material Creativo');
+      this.creativeFolder.show();
+      // Añade aquí los controles para el material creativo si es necesario
+      console.log('Material Creativo');
     }
   }
   
@@ -293,9 +333,11 @@ class App {
       this.currentMaterial.uniforms.u_inflateAmount.value = inflateAmount;
     
     } else if (this.currentMaterial === this.materialVertex) {
-      this.materialVertex.uniforms.u_time.value += 0.01;
+      this.materialVertex.uniforms.u_time.value = elapsedTime * this.params.time; // Multiplica elapsedTime por la velocidad
 
-      this.materialVertex.uniforms.modelMatrix.value.copy(this.mesh.matrixWorld);
+      this.mesh.updateMatrixWorld(); // Actualiza la matriz del mundo del mesh
+      this.materialVertex.uniforms.u_modelMatrix.value.copy(this.mesh.matrixWorld);
+
       this.materialVertex.uniforms.projectionMatrix.value.copy(this.camera.projectionMatrix);
       this.materialVertex.uniforms.viewMatrix.value.copy(this.camera.matrixWorldInverse);
       this.materialVertex.uniforms.cameraPosition.value = this.camera.position;
