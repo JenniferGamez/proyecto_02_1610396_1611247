@@ -150,6 +150,40 @@ class App {
 
     // Start the main loop
     this.animate();
+
+    this.initializeMaterials(); 
+  }
+  	
+  private initializeMaterials() {
+    const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight); // Obtén la resolución AQUÍ.
+
+    for (const materialName in this.materials) {
+        const material = this.materials[materialName];
+        if (material instanceof THREE.RawShaderMaterial) { // Asegúrate de que es un RawShaderMaterial.
+            material.uniforms.projectionMatrix = { value: this.camera.projectionMatrix };
+            material.uniforms.viewMatrix = { value: this.camera.matrixWorldInverse };
+            material.uniforms.modelMatrix = { value: new THREE.Matrix4() };
+            material.uniforms.cameraPosition = { value: this.camera.position };
+            material.uniforms.u_time = { value: 0.0 };
+            material.uniforms.u_resolution = { value: resolution };
+
+            if (material === this.gelatinMaterial) {
+                material.uniforms.u_clickTime = { value: -1.0 };
+                material.uniforms.u_elasticity = { value: this.elasticity };
+                material.uniforms.u_clickPosition = { value: new THREE.Vector3(-1.0, -1.0, -1.0) };
+                material.uniforms.u_shininess = { value: 32.0 };
+                material.uniforms.u_transparency = { value: 0.6 };
+                material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
+                material.uniforms.u_lightColor = { value: new THREE.Color(0xffffff) };
+                material.uniforms.u_objectColor = { value: new THREE.Color(0x00ff00) };
+            } else if (material === this.creativeMaterial) {
+                material.uniforms.u_inflateAmount = { value: 0.2 };
+                material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
+                material.uniforms.u_lightColor = { value: new THREE.Color(0x000000) };
+                material.uniforms.u_objectColor = { value: new THREE.Color(0xffffff) };
+            }
+        }
+    }
   }
 
   private updateGeometry() {
@@ -230,8 +264,9 @@ class App {
   }
 
   private onDocumentClick(event: MouseEvent): void {
+
     this.clickTime = (Date.now() - this.startTime) / 1000;
-    
+
     const mouse = new THREE.Vector2();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -242,21 +277,43 @@ class App {
     const intersects = raycaster.intersectObjects(this.scene.children, true);
 
     if (intersects.length > 0) {
-      const intersectionPoint = intersects[0].point;
-      
-      const currentMaterial = this.mesh.material as THREE.RawShaderMaterial;
+        const intersectedObject = intersects[0].object;
 
-      currentMaterial.uniforms.u_clickPosition.value = intersectionPoint;
-      currentMaterial.uniforms.u_clickTime.value = this.clickTime;
+        if (intersectedObject instanceof THREE.Mesh && intersectedObject.material instanceof THREE.RawShaderMaterial) {
+            const currentMaterial = intersectedObject.material as THREE.RawShaderMaterial;
 
-      this.elasticity = 1.0;
-      currentMaterial.uniforms.u_elasticity.value = this.elasticity;
-    
+            if (currentMaterial.uniforms.u_clickPosition) {
+                currentMaterial.uniforms.u_clickPosition.value = intersects[0].point;
+            } else {
+                console.warn("El uniform u_clickPosition no está definido en el material.");
+            }
+
+            if (currentMaterial.uniforms.u_clickTime) {
+                currentMaterial.uniforms.u_clickTime.value = this.clickTime;
+            } else {
+                console.warn("El uniform u_clickTime no está definido en el material.");
+            }
+
+            if (currentMaterial.uniforms.u_elasticity) {
+                this.elasticity = 1.0;
+                currentMaterial.uniforms.u_elasticity.value = this.elasticity;
+            } else {
+                console.warn("El uniform u_elasticity no está definido en el material.");
+            }
+        } else {
+            console.warn("El objeto ক্লিকado no tiene un material RawShaderMaterial.");
+        }
     } else {
-        const currentMaterial = this.mesh.material as THREE.RawShaderMaterial;
-        currentMaterial.uniforms.u_clickTime.value = -1;
+
+        if (this.mesh.material && this.mesh.material instanceof THREE.RawShaderMaterial) {
+            const currentMaterial = this.mesh.material as THREE.RawShaderMaterial;
+            if (currentMaterial.uniforms.u_clickTime) {
+                currentMaterial.uniforms.u_clickTime.value = -1;
+            }
+        }
     }
   }
+
 }
 
 const myApp = new App();
