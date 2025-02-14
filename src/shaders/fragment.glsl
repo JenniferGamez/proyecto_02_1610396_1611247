@@ -2,11 +2,9 @@
 
 precision highp float;
 
-// Varyings
-in vec3 v_vertexColor; 
-
 out vec4 fragColor;
 
 void main() {
-    fragColor = vec4(v_vertexColor, 1.0);
+    // Color morado sólido.
+    fragColor = vec4(0.5, 0.0, 0.5, 1.0);
 }

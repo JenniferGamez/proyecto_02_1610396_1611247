@@ -25,11 +25,12 @@ class App {
   private clickPosition: THREE.Vector3;
   private elasticity: number;
   private params: { geometry: string, material: string };
-  private materialShader: THREE.RawShaderMaterial;
+  private materialVertex: THREE.RawShaderMaterial;
   private gelatinMaterial: THREE.RawShaderMaterial;
   private creativeMaterial: THREE.RawShaderMaterial;
   private materials: { [key: string]: THREE.RawShaderMaterial };
   private currentMaterial: THREE.RawShaderMaterial;
+  private gui: dat.GUI;
 
   private camConfig = {
     fov: 75,
@@ -63,30 +64,22 @@ class App {
 
     const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
 
-    // Controles GUI
-    const gui = new dat.GUI();
-    this.params = { geometry: 'cube', material: 'gelatin' };
-    gui.add(this.params, 'geometry', ['cube', 'sphere', 'torus'])
-        .onChange(() => this.updateGeometry());
-    gui.add(this.params, 'material', ['material_1' ,'gelatin', 'creative'])
-        .onChange(() => this.switchMaterial())
-
-    this.elasticity = 0.0;
-
     // Material 1
-    const materialShader = new THREE.RawShaderMaterial({
+    this.materialVertex = new THREE.RawShaderMaterial({
       vertexShader,
       fragmentShader,
       uniforms: {
-        u_time: { value: 0.0 },
-        u_smoothness: { value: 5.0 },
-        u_modelMatrix: { value: new THREE.Matrix4() },
-        u_viewMatrix: { value: new THREE.Matrix4() },
-        u_projectionMatrix: { value: new THREE.Matrix4() },
+          u_time: { value: 0.0 },
+          u_smoothness: { value: 5.0 }, // Valor inicial de suavidad
+          u_modelMatrix: { value: new THREE.Matrix4() },
+          u_viewMatrix: { value: new THREE.Matrix4() },
+          u_projectionMatrix: { value: new THREE.Matrix4() },
       },
-    });
+      glslVersion: THREE.GLSL3,
+  });
 
     // Material 2: Binned Shader (Gelatin Cube)
+    this.elasticity = 0.0;
     this.gelatinMaterial = new THREE.RawShaderMaterial({
       vertexShader: vertexGelatinShader,
       fragmentShader: fragmentGelatinShader,
@@ -132,22 +125,28 @@ class App {
     
     // Lista de materiales para cambiar dinámicamente
     this.materials = {
-      //material_1: thismaterialShader,
+      materialVertex: this.materialVertex,
       gelatin: this.gelatinMaterial,
       creative: this.creativeMaterial,
     };
     this.currentMaterial = this.materials['gelatin'];
 
-    // Create mesh: Water - Cube geometry inicial
+    // Create mesh
     const geometry = new THREE.BoxGeometry(6, 6, 6);
-    
-    // Material actual - Inicializa con el primer material
     this.mesh = new THREE.Mesh(geometry, this.currentMaterial);
-
     this.mesh.rotation.y = Math.PI / 5;
     this.mesh.rotation.x = Math.PI / 6;
     this.scene.add(this.mesh);
     this.camera.position.z = 9;
+
+    // Controles GUI
+    this.gui = new dat.GUI();
+    this.params = { geometry: 'cube', material: 'gelatin' };
+    this.gui.add(this.params, 'geometry', ['cube', 'sphere', 'torus'])
+        .onChange(() => this.updateGeometry());
+    this.gui.add(this.params, 'material', ['materialVertex' ,'gelatin', 'creative'])
+        .onChange(() => this.switchMaterial())
+    
 
     // Controls
     const controls = new OrbitControls(this.camera, canvas);
@@ -189,7 +188,7 @@ class App {
         material.uniforms.u_time = { value: 0.0 };
         material.uniforms.u_resolution = { value: resolution };
 
-        if (material === this.materialShader) {
+        if (material === this.gelatinMaterial) {
           material.uniforms.u_clickTime = { value: -1.0 };
           material.uniforms.u_elasticity = { value: this.elasticity };
           material.uniforms.u_clickPosition = { value: new THREE.Vector3(-1.0, -1.0, -1.0) };
@@ -204,6 +203,9 @@ class App {
           material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
           material.uniforms.u_lightColor = { value: new THREE.Color(0x000000) };
           material.uniforms.u_objectColor = { value: new THREE.Color(0xffffff) };
+        
+        } else if (material === this.materialVertex) {
+          material.uniforms.u_smoothness = { value: 5.0 };
         }
       }
     }
@@ -234,6 +236,27 @@ class App {
   private switchMaterial() {
     this.currentMaterial = this.materials[this.params.material];
     this.mesh.material = this.currentMaterial;
+
+    // Update GUI controls based on the selected material
+    if (this.currentMaterial === this.materialVertex) {
+      // Show vertex material controls
+      // ... (code to show controls for vertex material)
+      this.gui.add(this.materialVertex.uniforms.u_smoothness, 'value', 1, 20, 0.1)
+        .name('Suavidad')
+        .onChange(() => {
+            this.materialVertex.uniforms.u_smoothness.value = parseFloat(this.materialVertex.uniforms.u_smoothness.value);
+        });
+      console.log('Material Vertex');
+    } else if (this.currentMaterial === this.gelatinMaterial) {
+        // Show gelatin material controls
+        // ... (code to show controls for gelatin material)
+
+        console.log('Material Gelatina');
+    } else if (this.currentMaterial === this.creativeMaterial) {
+        // Show creative material controls
+        // ... (code to show controls for creative material)
+        console.log('Material Creativo');
+    }
   }
   
   private animate(): void {
@@ -249,7 +272,7 @@ class App {
     this.currentMaterial.uniforms.viewMatrix.value = this.camera.matrixWorldInverse;
 
     // Animaciones y cambios de parámetros de los materiales
-    if (this.currentMaterial === this.materialShader) {
+    if (this.currentMaterial === this.gelatinMaterial) {
         
       if (this.elasticity > 0.001) {
         this.elasticity -= 0.02 * this.elasticity;
@@ -268,6 +291,14 @@ class App {
       // Material creativo (inflado)
       const inflateAmount = 0.2 + Math.sin(elapsedTime * 2.0) * 0.1; // Ejemplo de animación
       this.currentMaterial.uniforms.u_inflateAmount.value = inflateAmount;
+    
+    } else if (this.currentMaterial === this.materialVertex) {
+      this.materialVertex.uniforms.u_time.value += 0.01;
+
+      this.materialVertex.uniforms.modelMatrix.value.copy(this.mesh.matrixWorld);
+      this.materialVertex.uniforms.projectionMatrix.value.copy(this.camera.projectionMatrix);
+      this.materialVertex.uniforms.viewMatrix.value.copy(this.camera.matrixWorldInverse);
+      this.materialVertex.uniforms.cameraPosition.value = this.camera.position;
     }
 
     this.renderer.render(this.scene, this.camera);

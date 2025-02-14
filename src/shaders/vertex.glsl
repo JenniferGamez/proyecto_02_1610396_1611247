@@ -1,30 +1,27 @@
 precision highp float;
 
 in vec3 a_position;
-in vec3 a_normal;
 
-uniform mat4 u_projectionMatrix;
 uniform mat4 u_modelMatrix;
 uniform mat4 u_viewMatrix;
+uniform mat4 u_projectionMatrix;
 
 uniform float u_time;
 uniform float u_smoothness;
 
-out vec3 v_normal;
 out vec3 v_position;
 
 void main() {
-  vec3 position = a_position;
+    vec3 position = a_position;
 
-  // Deformación basada en la posición original y el tiempo
-  float deformation = sin(position.x * u_smoothness + u_time) * cos(position.y * u_smoothness + u_time);
-  position.z += deformation;
+    // Calcula la deformación basada en el tiempo y la suavidad.
+    // Puedes ajustar la intensidad de la deformación multiplicando por un escalar.
+    float deformation = sin(position.x * u_smoothness + u_time) * 0.2; 
 
-  // Transformación de la posición
-  vec4 worldPosition = u_modelMatrix * vec4(position, 1.0);
-  gl_Position = u_projectionMatrix * u_viewMatrix * worldPosition;
+    position.z += deformation; // Aplica la deformación en el eje Z.
 
-  // Cálculo de la normal
-  v_normal = mat3(u_modelMatrix) * a_normal;
-  v_position = worldPosition.xyz;
+    vec4 worldPosition = u_modelMatrix * vec4(position, 1.0);
+    gl_Position = u_projectionMatrix * u_viewMatrix * worldPosition;
+
+    v_position = worldPosition.xyz;
 }
