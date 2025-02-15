@@ -24,7 +24,7 @@ class App {
   private clickTime: number;
   private clickPosition: THREE.Vector3;
   private elasticity: number;
-  private params: { geometry: string, material: string, time: number, transparent: number, shininess: number, elasticity: number };
+  private params: { geometry: string, material: string, time: number, transparent: number, shininess: number, elasticity: number, inflateAmount: number };
   
   // Materiales
   private materialVertex: THREE.RawShaderMaterial;
@@ -44,6 +44,8 @@ class App {
   private colorMaterial: THREE.Color;
   private lightColor: THREE.Color;
   private transparent: number;
+  private inflateAmount: number;
+  private objectColor: THREE.Color;
 
   private camConfig = {
     fov: 75,
@@ -128,17 +130,20 @@ class App {
     });
 
     // Material 3: Shader creativo (inflado + toon shading)
+    this.inflateAmount = 0.2;
+    this.objectColor = new THREE.Color(0x00FFFF);
+    
     this.creativeMaterial = new THREE.RawShaderMaterial({
       vertexShader: vertexCreativeShader,
       fragmentShader: fragmentCreativeShader,
       transparent: true,
       uniforms: {
-        u_time: { value: 0.0 },
+        u_time: { value: this.time },
         u_resolution: { value: resolution },
-        u_inflateAmount: { value: 0.2 },
+        u_inflateAmount: { value: this.inflateAmount },
         u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
-        u_lightColor: { value: new THREE.Color(0x000000) },
-        u_objectColor: { value: new THREE.Color(0xffffff) },
+        u_objectColor: { value: this.objectColor },
+        u_baseShadeColor: { value: new THREE.Color(0x000000) },
         cameraPosition: { value: this.camera.position },
       },
       glslVersion: THREE.GLSL3,
@@ -163,7 +168,7 @@ class App {
 
     // Controles GUI
     this.gui = new dat.GUI();
-    this.params = { geometry: 'cube', material: 'gelatin', time: 0.5, transparent: 0.6, shininess: 32.0, elasticity: 0.0 };
+    this.params = { geometry: 'cube', material: 'gelatin', time: 0.5, transparent: 0.6, shininess: 32.0, elasticity: 0.0, inflateAmount: 0.2 };
     this.gui.add(this.params, 'geometry', ['cube', 'sphere', 'torus'])
         .onChange(() => this.updateGeometry());
     this.gui.add(this.params, 'material', ['materialVertex' ,'gelatin', 'creative'])
@@ -232,10 +237,10 @@ class App {
           material.uniforms.u_materialColor = { value: this.colorMaterial };
         
         } else if ( material === this.creativeMaterial ) {
-          material.uniforms.u_inflateAmount = { value: 0.2 };
+          material.uniforms.u_inflateAmount = { value: this.inflateAmount };
           material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
           material.uniforms.u_lightColor = { value: new THREE.Color(0x000000) };
-          material.uniforms.u_materialColor = { value: this.colorMaterial };
+          material.uniforms.u_materialColor = { value: this.objectColor };
         
         } else if ( material === this.materialVertex ) {
           material.uniforms.u_smoothness = { value: 1.0 };
@@ -331,11 +336,17 @@ class App {
           this.gelatinMaterial.uniforms.u_elasticity.value = this.params.elasticity;
         });
       }
-      console.log('Material Gelatina');
+
     } else if (this.currentMaterial === this.creativeMaterial) {
       this.creativeFolder.show();
-      // Añade aquí los controles para el material creativo si es necesario
-      console.log('Material Creativo');
+
+      if ( this.creativeFolder.__controllers.length === 0 ) {
+        // color
+        this.creativeFolder.addColor(this, 'objectColor').name('Color').onChange(() => {
+          this.creativeMaterial.uniforms.u_objectColor.value = this.objectColor;
+        });
+        this.creativeFolder.add(this.creativeMaterial.uniforms.u_inflateAmount, 'value', 0, 1, 0.01).name('Inflate Amount');
+      }
     }
   }
   
@@ -374,14 +385,13 @@ class App {
 
 
     } else if (this.currentMaterial === this.creativeMaterial) {
-      // Material creativo (inflado)
-      const inflateAmount = 0.2 + Math.sin(elapsedTime * 2.0) * 0.1;
-      this.currentMaterial.uniforms.u_inflateAmount.value = inflateAmount;
+      this.creativeMaterial.uniforms.u_time.value = elapsedTime;
+      this.creativeMaterial.uniforms.cameraPosition.value = this.camera.position;
     
     } else if (this.currentMaterial === this.materialVertex) {
       this.materialVertex.uniforms.u_time.value = elapsedTime * this.params.time; // Multiplica elapsedTime por la velocidad
 
-      this.mesh.updateMatrixWorld(); // Actualiza la matriz del mundo del mesh
+      this.mesh.updateMatrixWorld();
       this.materialVertex.uniforms.u_modelMatrix.value.copy(this.mesh.matrixWorld);
 
       this.materialVertex.uniforms.projectionMatrix.value.copy(this.camera.projectionMatrix);

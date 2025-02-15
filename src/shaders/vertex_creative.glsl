@@ -21,6 +21,5 @@ void main() {
 
     gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(inflatedPosition, 1.0);
 
-    // Transformar la normal al espacio mundial
     v_normal = normalize(mat3(modelMatrix) * normal);
 }
