@@ -34,7 +34,7 @@ void main() {
     vec3 viewDir = normalize(cameraPosition - v_positionWorld);
     vec3 halfVector = normalize(lightDir + viewDir);
     float specularFactor = pow(max(dot(normal, halfVector), 0.0), u_shininess);
-    vec3 specular = specularFactor * u_lightColor * u_specularColor;
+    vec3 specular = specularFactor * u_specularColor;
 
     // Combine all lighting components
     vec3 color = ambient + diffuse + specular;  // Sum all components

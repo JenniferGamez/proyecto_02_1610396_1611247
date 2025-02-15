@@ -25,8 +25,8 @@ void main() {
     float distance = length(pos - u_click_position);
     float clickWave = sin(distance * 10.0 + u_time * 5.0) * u_elasticity * 3.0;
 
-    float wave1 = sin(position.x * 10.0 + u_time * 5.0) * cos(position.y * 10.0 + u_time * 5.0) * u_elasticity * 1.5;
-    float wave2 = 0.5 * sin(position.x * 20.0 + u_time * 10.0) * cos(position.y * 20.0 + u_time * 10.0) * u_elasticity * 1.5;
+    float wave1 = sin(position.x * 10.0 + u_time * 5.0) * cos(position.y * 10.0 + u_time * 5.0) * u_elasticity * 2.0;
+    float wave2 = 0.5 * sin(position.x * 20.0 + u_time * 10.0) * cos(position.y * 20.0 + u_time * 10.0) * u_elasticity * 2.0;
 
     float finalWave = wave1 + wave2;
     if (distance < 1.0) {

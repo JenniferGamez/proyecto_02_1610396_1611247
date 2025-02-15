@@ -24,7 +24,7 @@ class App {
   private clickTime: number;
   private clickPosition: THREE.Vector3;
   private elasticity: number;
-  private params: { geometry: string, material: string, time: number };
+  private params: { geometry: string, material: string, time: number, transparent: number, shininess: number, elasticity: number };
   
   // Materiales
   private materialVertex: THREE.RawShaderMaterial;
@@ -42,6 +42,8 @@ class App {
   private time: number;
   private shininess: number;
   private colorMaterial: THREE.Color;
+  private lightColor: THREE.Color;
+  private transparent: number;
 
   private camConfig = {
     fov: 75,
@@ -93,6 +95,8 @@ class App {
     this.elasticity = 0.0;
     this.shininess = 32.0;
     this.colorMaterial = new THREE.Color(0x00ff00);
+    this.lightColor = new THREE.Color(0xffffff);
+    this.transparent = 0.6;
 
     this.gelatinMaterial = new THREE.RawShaderMaterial({
       vertexShader: vertexGelatinShader,
@@ -111,10 +115,10 @@ class App {
         u_clickPosition: { value: new THREE.Vector3(-1.0, -1.0, -1.0) }, // Posición del click
         
         // Blinn-Phong parameters
-        u_transparency: { value: 0.6 }, // Transparencia del material
+        u_transparency: { value: this.transparent },
         u_shininess: { value: this.shininess },
         u_specularColor: { value: new THREE.Color(0xffffff) },
-        u_lightColor: { value: new THREE.Color(0xffffff) },
+        u_lightColor: { value: this.lightColor },
         u_materialColor: { value: this.colorMaterial },
         u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
 
@@ -159,7 +163,7 @@ class App {
 
     // Controles GUI
     this.gui = new dat.GUI();
-    this.params = { geometry: 'cube', material: 'gelatin', time: 0.5 };
+    this.params = { geometry: 'cube', material: 'gelatin', time: 0.5, transparent: 0.6, shininess: 32.0, elasticity: 0.0 };
     this.gui.add(this.params, 'geometry', ['cube', 'sphere', 'torus'])
         .onChange(() => this.updateGeometry());
     this.gui.add(this.params, 'material', ['materialVertex' ,'gelatin', 'creative'])
@@ -222,9 +226,9 @@ class App {
           material.uniforms.u_elasticity = { value: this.elasticity };
           material.uniforms.u_clickPosition = { value: new THREE.Vector3(-1.0, -1.0, -1.0) };
           material.uniforms.u_shininess = { value: this.shininess };
-          material.uniforms.u_transparency = { value: 0.6 };
+          material.uniforms.u_transparency = { value: this.transparent };
           material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
-          material.uniforms.u_lightColor = { value: new THREE.Color(0xffffff) };
+          material.uniforms.u_lightColor = { value: this.lightColor };
           material.uniforms.u_materialColor = { value: this.colorMaterial };
         
         } else if ( material === this.creativeMaterial ) {
@@ -269,6 +273,7 @@ class App {
     this.currentMaterial = this.materials[this.params.material];
     this.mesh.material = this.currentMaterial;
 
+    
     // Limpia los controles anteriores (excepto el de geometría y material)
     for (let i = this.gui.__controllers.length - 1; i >= 0; i--) {
       const controller = this.gui.__controllers[i];
@@ -276,7 +281,7 @@ class App {
           this.gui.remove(controller);
       }
     }
-
+    
     // Ocultar todas las carpetas y limpia sus controles
     this.materialVertexFolder.hide();
     for ( let i = this.materialVertexFolder.__controllers.length - 1; i >= 0; i-- ) {
@@ -307,20 +312,24 @@ class App {
       this.gelatinFolder.show();
 
       if ( this.gelatinFolder.__controllers.length === 0 ) { // Check if controls are already added
-        this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_lightColor, 'value').name('Light Color');
         this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_specularColor, 'value').name('Specular Color');
-        this.gelatinFolder.addColor(this, 'colorMaterial').name('Material Color').onChange( () => {
+        //this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_lightColor, 'value').name('Light Color');
+        this.gelatinFolder.addColor(this, 'lightColor').name('Light Color').onChange(() => {
+          this.gelatinMaterial.uniforms.u_lightColor.value = new THREE.Vector3(this.lightColor.r, this.lightColor.g, this.lightColor.b);
+        });
+        this.gelatinFolder.addColor(this, 'colorMaterial').name('Material Color').onChange(() => {
           this.gelatinMaterial.uniforms.u_materialColor.value = this.colorMaterial;
         });
-        this.gelatinFolder.add(this, 'shininess', 0, 256, 1).name('Shininess').onChange( () => {
-          this.gelatinMaterial.uniforms.u_shininess.value = this.shininess;
+        //this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_transparency, 'value', 0, 1, 0.01).name('Transparency');
+        this.gelatinFolder.add(this.params, 'transparent', 0, 1, 0.01).name('Transparency').onChange( () => { 
+          this.gelatinMaterial.uniforms.u_transparency.value = this.params.transparent;
         });
-        this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_transparency, 'value', 0, 1, 0.01).name('Transparency');
-        this.gelatinFolder.add(this, 'elasticity', 0, 1, 0.01).name('Elasticity').onChange( () => {  
-          this.gelatinMaterial.uniforms.u_elasticity.value = this.elasticity;
+        this.gelatinFolder.add(this.params, 'shininess', 0, 256, 1).name('Shininess').onChange( () => {
+          this.gelatinMaterial.uniforms.u_shininess.value = this.params.shininess;
         });
-        
-        //this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_elasticity, 'value', 0, 1, 0.01).name('Elasticity');
+        this.gelatinFolder.add(this.params, 'elasticity', 0, 1, 0.01).name('Elasticity').onChange( () => {  
+          this.gelatinMaterial.uniforms.u_elasticity.value = this.params.elasticity;
+        });
       }
       console.log('Material Gelatina');
     } else if (this.currentMaterial === this.creativeMaterial) {
@@ -354,10 +363,6 @@ class App {
       }
 
       this.gelatinMaterial.uniforms.u_shininess.value = this.shininess;
-      //const shininess = 16.0 + Math.cos(elapsedTime * 2) * 8;
-      const transparency = 0.5 + Math.sin(elapsedTime * 2) * 0.1;
-      //this.currentMaterial.uniforms.u_shininess.value = shininess;
-      this.currentMaterial.uniforms.u_transparency.value = transparency;
 
       // Animación de la luz. Light direction
       const lightDirection = new THREE.Vector3(
@@ -370,7 +375,7 @@ class App {
 
     } else if (this.currentMaterial === this.creativeMaterial) {
       // Material creativo (inflado)
-      const inflateAmount = 0.2 + Math.sin(elapsedTime * 2.0) * 0.1; // Ejemplo de animación
+      const inflateAmount = 0.2 + Math.sin(elapsedTime * 2.0) * 0.1;
       this.currentMaterial.uniforms.u_inflateAmount.value = inflateAmount;
     
     } else if (this.currentMaterial === this.materialVertex) {
