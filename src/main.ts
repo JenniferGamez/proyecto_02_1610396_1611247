@@ -25,11 +25,14 @@ class App {
   private clickPosition: THREE.Vector3;
   private elasticity: number;
   private params: { geometry: string, material: string, time: number };
+  
+  // Materiales
   private materialVertex: THREE.RawShaderMaterial;
   private gelatinMaterial: THREE.RawShaderMaterial;
   private creativeMaterial: THREE.RawShaderMaterial;
   private materials: { [key: string]: THREE.RawShaderMaterial };
   private currentMaterial: THREE.RawShaderMaterial;
+  
   // GUI
   private gui: dat.GUI;
   private materialVertexFolder: dat.GUI; // Carpeta para materialVertex
@@ -67,24 +70,24 @@ class App {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     const canvas = document.body.appendChild(this.renderer.domElement);
 
-    const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
-
+    
     // Material 1
     this.time = 0.5;
     this.materialVertex = new THREE.RawShaderMaterial({
       vertexShader,
       fragmentShader,
       uniforms: {
-          u_time: { value: this.time },
-          u_smoothness: { value: 1.0 },
-          u_modelMatrix: { value: new THREE.Matrix4() },
-          u_viewMatrix: { value: new THREE.Matrix4() },
-          u_projectionMatrix: { value: new THREE.Matrix4() },
+        u_time: { value: this.time },
+        u_smoothness: { value: 1.0 },
+        u_modelMatrix: { value: new THREE.Matrix4() },
+        u_viewMatrix: { value: new THREE.Matrix4() },
+        u_projectionMatrix: { value: new THREE.Matrix4() },
       },
       glslVersion: THREE.GLSL3,
     });
-
+    
     // Material 2: Binned Shader (Gelatin Cube)
+    const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
     this.elasticity = 0.0;
     this.gelatinMaterial = new THREE.RawShaderMaterial({
       vertexShader: vertexGelatinShader,
@@ -101,11 +104,17 @@ class App {
         u_clickTime: { value: -1.0 }, // Tiempo del click
         u_elasticity: { value: this.elasticity }, // Elasticidad	
         u_clickPosition: { value: new THREE.Vector3(-1.0, -1.0, -1.0) }, // Posición del click
+        
+        // Blinn-Phong parameters
         u_shininess: { value: 32.0 }, // Brillo del material
         u_transparency: { value: 0.6 }, // Transparencia del material
         u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
         u_lightColor: { value: new THREE.Color(0xffffff) }, // Color de la luz
         u_objectColor: { value: new THREE.Color(0x00ff00) }, // Color del objeto
+        u_specularColor: { value: new THREE.Color(0xffffff) }, // Color especular
+        u_materialColor: { value: new THREE.Color(0x00ff00) },
+
+        //u_transparency: { value: 0.6 }, // Transparencia
       },
       glslVersion: THREE.GLSL3,
       side: THREE.DoubleSide,
@@ -157,7 +166,7 @@ class App {
     this.materialVertexFolder = this.gui.addFolder("Material Vertex");
     this.materialVertexFolder.hide();
 
-    this.gelatinFolder = this.gui.addFolder("Gelatina");
+    this.gelatinFolder = this.gui.addFolder("Gelatina (Blinn-Phong)");
     this.gelatinFolder.hide();
 
     this.creativeFolder = this.gui.addFolder("Creativo");
@@ -290,7 +299,15 @@ class App {
 
     } else if (this.currentMaterial === this.gelatinMaterial) {
       this.gelatinFolder.show();
-      // Añade aquí los controles para el material de gelatina si es necesario
+      if (this.gelatinFolder.__controllers.length === 0) { // Check if controls are already added
+        this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_lightColor, 'value').name('Light Color');
+        this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_materialColor, 'value').name('Material Color');
+        this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_specularColor, 'value').name('Specular Color');
+        this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_shininess, 'value', 1, 256, 1).name('Shininess');
+        this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_transparency, 'value', 0, 1, 0.01).name('Transparency');
+        this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_elasticity, 'value', 0, 1, 0.01).name('Elasticity');
+        // ... other controls as needed
+      }
       console.log('Material Gelatina');
     } else if (this.currentMaterial === this.creativeMaterial) {
       this.creativeFolder.show();
@@ -326,7 +343,14 @@ class App {
       const transparency = 0.5 + Math.sin(elapsedTime * 2) * 0.1;
       this.currentMaterial.uniforms.u_shininess.value = shininess;
       this.currentMaterial.uniforms.u_transparency.value = transparency;
-  
+      const lightDirection = new THREE.Vector3(
+        Math.sin(performance.now() * 0.001) * 2,
+        1,
+        Math.cos(performance.now() * 0.001) * 2
+      ).normalize();
+      this.currentMaterial.uniforms.u_lightDirection.value = lightDirection;
+
+
     } else if (this.currentMaterial === this.creativeMaterial) {
       // Material creativo (inflado)
       const inflateAmount = 0.2 + Math.sin(elapsedTime * 2.0) * 0.1; // Ejemplo de animación

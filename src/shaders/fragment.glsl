@@ -2,6 +2,7 @@
 
 precision highp float;
 
+// Varyings
 out vec4 fragColor;
 
 void main() {

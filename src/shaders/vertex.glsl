@@ -1,4 +1,4 @@
-// #version 300 es
+// Vertex shader. Material 1.
 precision highp float;
 
 // Varyings de salida
@@ -19,10 +19,7 @@ out vec3 v_normal;
 
 void main() {
     vec3 smoothedPosition = position;
-
-    // Ejemplo de suavizado (puedes mejorarlo):
-    // Este ejemplo mueve los vértices en una onda sinusoidal
-    // Puedes experimentar con diferentes funciones y valores para lograr el efecto deseado
+    
     float displacement = sin(position.x * 5.0 + u_time * 2.0) * u_smoothness * 0.5;
     smoothedPosition.y += displacement;
 
