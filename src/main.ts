@@ -102,7 +102,7 @@ class App {
     this.shininess = 32.0;
     this.colorMaterial = new THREE.Color(0x00ff00);
     this.lightColor = new THREE.Color(0xffffff);
-    this.lightColorObj = { color: this.lightColor.getHex() };
+    this.lightColorObj = { color: `#${this.lightColor.getHexString()}` };
     this.transparent = 0.6;
 
     this.gelatinMaterial = new THREE.RawShaderMaterial({
@@ -152,7 +152,7 @@ class App {
               this.lightDirectionX, 
               this.lightDirectionY, 
               this.lightDirectionZ
-          ).normalize() // Normaliza el vector
+          ).normalize()
         },
         u_objectColor: { value: new THREE.Color(0x00FFFF) },
         cameraPosition: { value: this.camera.position },
@@ -224,12 +224,12 @@ class App {
   }
   	
   private initializeMaterials() {
-    const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight); // Obtén la resolución AQUÍ.
+    const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
 
     for (const materialName in this.materials) {
       const material = this.materials[materialName];
       
-      if ( material instanceof THREE.RawShaderMaterial ) { // Asegúrate de que es un RawShaderMaterial.
+      if ( material instanceof THREE.RawShaderMaterial ) {
         material.uniforms.projectionMatrix = { value: this.camera.projectionMatrix };
         material.uniforms.viewMatrix = { value: this.camera.matrixWorldInverse };
         material.uniforms.modelMatrix = { value: new THREE.Matrix4() };
@@ -293,7 +293,6 @@ class App {
     this.currentMaterial = this.materials[this.params.material];
     this.mesh.material = this.currentMaterial;
 
-    
     // Limpia los controles anteriores (excepto el de geometría y material)
     for (let i = this.gui.__controllers.length - 1; i >= 0; i--) {
       const controller = this.gui.__controllers[i];
@@ -342,13 +341,12 @@ class App {
         this.gelatinFolder.add(this.params, 'transparent', 0, 1, 0.01).name('Transparency').onChange( () => { 
           this.gelatinMaterial.uniforms.u_transparency.value = this.params.transparent;
         });
-        this.gelatinFolder.add(this, 'shininess', 0, 256, 1).name('Shininess').onChange(() => {
-          this.gelatinMaterial.uniforms.u_shininess.value = this.shininess;
+        this.gelatinFolder.add(this.params, 'shininess', 0, 256, 1).name('Shininess').onChange(() => {
+          this.gelatinMaterial.uniforms.u_shininess.value = this.params.shininess;
         });
         this.gelatinFolder.add(this.params, 'elasticity', 0, 1, 0.01).name('Elasticity').onChange( () => {  
           this.gelatinMaterial.uniforms.u_elasticity.value = this.params.elasticity;
         });
-        
       }
 
     } else if (this.currentMaterial === this.creativeMaterial) {

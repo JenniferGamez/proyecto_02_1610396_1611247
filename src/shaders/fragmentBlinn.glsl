@@ -1,3 +1,6 @@
+// Fragment shader for Blinn-Phong
+// Fragment Material 2
+
 precision highp float;
 
 // Varyings

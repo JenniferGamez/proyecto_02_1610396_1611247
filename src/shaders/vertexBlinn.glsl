@@ -1,19 +1,24 @@
+// Vertex Shader para el modelo de iluminación de Blinn-Phong
+// Vertex Material 2
+
 precision highp float;
 
+// Varyings
 in vec3 position;
 in vec3 normal;
 
+out vec3 v_positionWorld;
+out float v_depth;
+out float v_finalWave;
+out vec3 v_normal;
+
+// Uniforms
 uniform mat4 projectionMatrix;
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform float u_time;
 uniform float u_elasticity;
 uniform vec3 u_click_position;
-
-out vec3 v_positionWorld;
-out float v_depth;
-out float v_finalWave;
-out vec3 v_normal;
 
 void main() {
     v_positionWorld = (modelMatrix * vec4(position, 1.0)).xyz;

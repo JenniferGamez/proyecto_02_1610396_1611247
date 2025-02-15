@@ -1,10 +1,15 @@
+// Fragment shader para el efecto de sombreado toon
+// Fragment. Material 
+
 precision highp float;
 
+// Varyings
 in vec3 v_normal;
 in vec3 v_positionWorld;
 
 out vec4 fragColor;
 
+// Uniforms
 uniform vec3 cameraPosition;
 uniform vec3 u_lightDirection;
 uniform vec3 u_objectColor; 
