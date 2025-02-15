@@ -12,10 +12,9 @@ uniform vec3 cameraPosition;
 uniform vec3 u_lightColor;
 uniform vec3 u_materialColor;
 uniform vec3 u_specularColor;
-uniform float u_shininess;    // Brillo
+uniform float u_shininess;
 uniform vec3 u_lightDirection;
-uniform float u_transparency; // Transparencia (alpha)
-
+uniform float u_transparency;
 
 void main() {
 

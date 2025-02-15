@@ -41,6 +41,7 @@ class App {
   
   private time: number;
   private shininess: number;
+  private colorMaterial: THREE.Color;
 
   private camConfig = {
     fov: 75,
@@ -72,7 +73,6 @@ class App {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     const canvas = document.body.appendChild(this.renderer.domElement);
 
-    
     // Material 1
     this.time = 0.5;
     this.materialVertex = new THREE.RawShaderMaterial({
@@ -92,6 +92,8 @@ class App {
     const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
     this.elasticity = 0.0;
     this.shininess = 32.0;
+    this.colorMaterial = new THREE.Color(0x00ff00);
+
     this.gelatinMaterial = new THREE.RawShaderMaterial({
       vertexShader: vertexGelatinShader,
       fragmentShader: fragmentGelatinShader,
@@ -110,12 +112,11 @@ class App {
         
         // Blinn-Phong parameters
         u_transparency: { value: 0.6 }, // Transparencia del material
-        u_objectColor: { value: new THREE.Color(0x00ff00) }, // Color del objeto
         u_shininess: { value: this.shininess },
         u_specularColor: { value: new THREE.Color(0xffffff) },
         u_lightColor: { value: new THREE.Color(0xffffff) },
-        u_materialColor: { value: new THREE.Color(0x00ff00) },
-        u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() }, // Valor inicial de la dirección de la luz
+        u_materialColor: { value: this.colorMaterial },
+        u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
 
       },
       glslVersion: THREE.GLSL3,
@@ -224,13 +225,13 @@ class App {
           material.uniforms.u_transparency = { value: 0.6 };
           material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
           material.uniforms.u_lightColor = { value: new THREE.Color(0xffffff) };
-          material.uniforms.u_objectColor = { value: new THREE.Color(0x00ff00) };
+          material.uniforms.u_materialColor = { value: this.colorMaterial };
         
         } else if ( material === this.creativeMaterial ) {
           material.uniforms.u_inflateAmount = { value: 0.2 };
           material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
           material.uniforms.u_lightColor = { value: new THREE.Color(0x000000) };
-          material.uniforms.u_objectColor = { value: new THREE.Color(0xffffff) };
+          material.uniforms.u_materialColor = { value: this.colorMaterial };
         
         } else if ( material === this.materialVertex ) {
           material.uniforms.u_smoothness = { value: 1.0 };
@@ -278,44 +279,48 @@ class App {
 
     // Ocultar todas las carpetas y limpia sus controles
     this.materialVertexFolder.hide();
-    for (let i = this.materialVertexFolder.__controllers.length - 1; i >= 0; i--) {
+    for ( let i = this.materialVertexFolder.__controllers.length - 1; i >= 0; i-- ) {
         this.materialVertexFolder.remove(this.materialVertexFolder.__controllers[i]);
     }
 
     this.gelatinFolder.hide();
-    for (let i = this.gelatinFolder.__controllers.length - 1; i >= 0; i--) {
+    for ( let i = this.gelatinFolder.__controllers.length - 1; i >= 0; i-- ) {
         this.gelatinFolder.remove(this.gelatinFolder.__controllers[i]);
     }
 
     this.creativeFolder.hide();
-    for (let i = this.creativeFolder.__controllers.length - 1; i >= 0; i--) {
+    for ( let i = this.creativeFolder.__controllers.length - 1; i >= 0; i-- ) {
         this.creativeFolder.remove(this.creativeFolder.__controllers[i]);
     }
 
     // Muestra la carpeta y añade los controles según el material
-    if (this.currentMaterial === this.materialVertex) {
+    if ( this.currentMaterial === this.materialVertex ) {
       this.materialVertexFolder.show();
-      if (this.materialVertexFolder.__controllers.length === 0) {
+ 
+      if ( this.materialVertexFolder.__controllers.length === 0 ) {
         this.materialVertexFolder.add(this.materialVertex.uniforms.u_smoothness, 'value', 1, 5, 0.1).name('Suavidad');
         this.materialVertexFolder.add(this.params, 'time', 0.1, 10, 0.01).name('Tiempo');
       }
       console.log('Material Vertex');
 
-    } else if (this.currentMaterial === this.gelatinMaterial) {
+    } else if ( this.currentMaterial === this.gelatinMaterial ) {
       this.gelatinFolder.show();
-      if (this.gelatinFolder.__controllers.length === 0) { // Check if controls are already added
-        this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_lightColor, 'value').name('Light Color');
-        this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_materialColor, 'value').name('Material Color');
-        this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_specularColor, 'value').name('Specular Color');
 
+      if ( this.gelatinFolder.__controllers.length === 0 ) { // Check if controls are already added
+        this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_lightColor, 'value').name('Light Color');
+        this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_specularColor, 'value').name('Specular Color');
+        this.gelatinFolder.addColor(this, 'colorMaterial').name('Material Color').onChange( () => {
+          this.gelatinMaterial.uniforms.u_materialColor.value = this.colorMaterial;
+        });
         this.gelatinFolder.add(this, 'shininess', 0, 256, 1).name('Shininess').onChange( () => {
           this.gelatinMaterial.uniforms.u_shininess.value = this.shininess;
         });
         this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_transparency, 'value', 0, 1, 0.01).name('Transparency');
-        this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_elasticity, 'value', 0, 1, 0.01).name('Elasticity');
-        // this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_lightDirection.value, 'x', -1, 1, 0.01).name('Light Dir X');
-        // this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_lightDirection.value, 'y', -1, 1, 0.01).name('Light Dir Y');
-        // this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_lightDirection.value, 'z', -1, 1, 0.01).name('Light Dir Z');
+        this.gelatinFolder.add(this, 'elasticity', 0, 1, 0.01).name('Elasticity').onChange( () => {  
+          this.gelatinMaterial.uniforms.u_elasticity.value = this.elasticity;
+        });
+        
+        //this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_elasticity, 'value', 0, 1, 0.01).name('Elasticity');
       }
       console.log('Material Gelatina');
     } else if (this.currentMaterial === this.creativeMaterial) {
