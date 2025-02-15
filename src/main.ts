@@ -131,8 +131,6 @@ class App {
 
     // Material 3: Shader creativo (inflado + toon shading)
     this.inflateAmount = 0.2;
-    this.objectColor = new THREE.Color(0x00FFFF);
-    
     this.creativeMaterial = new THREE.RawShaderMaterial({
       vertexShader: vertexCreativeShader,
       fragmentShader: fragmentCreativeShader,
@@ -142,8 +140,7 @@ class App {
         u_resolution: { value: resolution },
         u_inflateAmount: { value: this.inflateAmount },
         u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
-        u_objectColor: { value: this.objectColor },
-        u_baseShadeColor: { value: new THREE.Color(0x000000) },
+        u_objectColor: { value: new THREE.Color(0x00FFFF) },
         cameraPosition: { value: this.camera.position },
       },
       glslVersion: THREE.GLSL3,
@@ -342,9 +339,6 @@ class App {
 
       if ( this.creativeFolder.__controllers.length === 0 ) {
         // color
-        this.creativeFolder.addColor(this, 'objectColor').name('Color').onChange(() => {
-          this.creativeMaterial.uniforms.u_objectColor.value = this.objectColor;
-        });
         this.creativeFolder.add(this.creativeMaterial.uniforms.u_inflateAmount, 'value', 0, 1, 0.01).name('Inflate Amount');
       }
     }

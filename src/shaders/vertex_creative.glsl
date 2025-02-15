@@ -8,6 +8,7 @@ uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform float u_time;
 uniform float u_inflateAmount; // Controla cuánto se infla la geometría
+uniform float u_frequency;  
 
 out vec3 v_normal;
 out vec3 v_positionWorld;

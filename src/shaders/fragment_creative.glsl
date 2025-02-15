@@ -7,8 +7,7 @@ out vec4 fragColor;
 
 uniform vec3 cameraPosition;
 uniform vec3 u_lightDirection;
-uniform vec3 u_objectColor;
-uniform vec3 u_baseShadeColor; 
+uniform vec3 u_objectColor; 
 
 void main() {
     vec3 normal = normalize(v_normal);
