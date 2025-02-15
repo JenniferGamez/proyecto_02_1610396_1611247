@@ -43,9 +43,13 @@ class App {
   private shininess: number;
   private colorMaterial: THREE.Color;
   private lightColor: THREE.Color;
+  private lightColorObj: { color: string };
   private transparent: number;
   private inflateAmount: number;
-  private objectColor: THREE.Color;
+  
+  private lightDirectionX: number;
+  private lightDirectionY: number;
+  private lightDirectionZ: number;
 
   private camConfig = {
     fov: 75,
@@ -98,6 +102,7 @@ class App {
     this.shininess = 32.0;
     this.colorMaterial = new THREE.Color(0x00ff00);
     this.lightColor = new THREE.Color(0xffffff);
+    this.lightColorObj = { color: this.lightColor.getHex() };
     this.transparent = 0.6;
 
     this.gelatinMaterial = new THREE.RawShaderMaterial({
@@ -110,7 +115,7 @@ class App {
         viewMatrix: { value: this.camera.matrixWorldInverse },
         modelMatrix: { value: new THREE.Matrix4() },
         cameraPosition: { value: this.camera.position },
-        u_time: { value: this.shininess },
+        u_time: { value: this.time },
         u_resolution: { value: resolution },
         u_clickTime: { value: -1.0 }, // Tiempo del click
         u_elasticity: { value: this.elasticity }, // Elasticidad	
@@ -131,6 +136,9 @@ class App {
 
     // Material 3: Shader creativo (inflado + toon shading)
     this.inflateAmount = 0.2;
+    this.lightDirectionX = 1;
+    this.lightDirectionY = 1;
+    this.lightDirectionZ = 1;
     this.creativeMaterial = new THREE.RawShaderMaterial({
       vertexShader: vertexCreativeShader,
       fragmentShader: fragmentCreativeShader,
@@ -139,7 +147,13 @@ class App {
         u_time: { value: this.time },
         u_resolution: { value: resolution },
         u_inflateAmount: { value: this.inflateAmount },
-        u_lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
+        u_lightDirection: { 
+          value: new THREE.Vector3(
+              this.lightDirectionX, 
+              this.lightDirectionY, 
+              this.lightDirectionZ
+          ).normalize() // Normaliza el vector
+        },
         u_objectColor: { value: new THREE.Color(0x00FFFF) },
         cameraPosition: { value: this.camera.position },
       },
@@ -235,15 +249,19 @@ class App {
         
         } else if ( material === this.creativeMaterial ) {
           material.uniforms.u_inflateAmount = { value: this.inflateAmount };
-          material.uniforms.u_lightDirection = { value: new THREE.Vector3(1, 1, 1).normalize() };
+          material.uniforms.u_lightDirection = { value: new THREE.Vector3(
+                this.lightDirectionX, 
+                this.lightDirectionY, 
+                this.lightDirectionZ
+            ).normalize()
+          };
           material.uniforms.u_lightColor = { value: new THREE.Color(0x000000) };
-          material.uniforms.u_materialColor = { value: this.objectColor };
         
         } else if ( material === this.materialVertex ) {
           material.uniforms.u_smoothness = { value: 1.0 };
-          material.uniforms.u_modelMatrix = { value: new THREE.Matrix4() }; // Inicializa u_modelMatrix
-          material.uniforms.u_viewMatrix = { value: new THREE.Matrix4() }; // Inicializa u_viewMatrix
-          material.uniforms.u_projectionMatrix = { value: new THREE.Matrix4() }; // Inicializa u_projectionMatrix
+          material.uniforms.u_modelMatrix = { value: new THREE.Matrix4() };
+          material.uniforms.u_viewMatrix = { value: new THREE.Matrix4() };
+          material.uniforms.u_projectionMatrix = { value: new THREE.Matrix4() };
         }
       }
     }
@@ -308,37 +326,38 @@ class App {
         this.materialVertexFolder.add(this.materialVertex.uniforms.u_smoothness, 'value', 1, 5, 0.1).name('Suavidad');
         this.materialVertexFolder.add(this.params, 'time', 0.1, 10, 0.01).name('Tiempo');
       }
-      console.log('Material Vertex');
 
     } else if ( this.currentMaterial === this.gelatinMaterial ) {
       this.gelatinFolder.show();
 
-      if ( this.gelatinFolder.__controllers.length === 0 ) { // Check if controls are already added
+      if ( this.gelatinFolder.__controllers.length === 0 ) {
         this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_specularColor, 'value').name('Specular Color');
-        //this.gelatinFolder.addColor(this.gelatinMaterial.uniforms.u_lightColor, 'value').name('Light Color');
-        this.gelatinFolder.addColor(this, 'lightColor').name('Light Color').onChange(() => {
-          this.gelatinMaterial.uniforms.u_lightColor.value = new THREE.Vector3(this.lightColor.r, this.lightColor.g, this.lightColor.b);
+        this.gelatinFolder.addColor(this.lightColorObj, 'color').name('Light Color').onChange(() => {
+          this.lightColor.set(this.lightColorObj.color);
+          this.gelatinMaterial.uniforms.u_lightColor.value = this.lightColor;
         });
         this.gelatinFolder.addColor(this, 'colorMaterial').name('Material Color').onChange(() => {
           this.gelatinMaterial.uniforms.u_materialColor.value = this.colorMaterial;
         });
-        //this.gelatinFolder.add(this.gelatinMaterial.uniforms.u_transparency, 'value', 0, 1, 0.01).name('Transparency');
         this.gelatinFolder.add(this.params, 'transparent', 0, 1, 0.01).name('Transparency').onChange( () => { 
           this.gelatinMaterial.uniforms.u_transparency.value = this.params.transparent;
         });
-        this.gelatinFolder.add(this.params, 'shininess', 0, 256, 1).name('Shininess').onChange( () => {
-          this.gelatinMaterial.uniforms.u_shininess.value = this.params.shininess;
+        this.gelatinFolder.add(this, 'shininess', 0, 256, 1).name('Shininess').onChange(() => {
+          this.gelatinMaterial.uniforms.u_shininess.value = this.shininess;
         });
         this.gelatinFolder.add(this.params, 'elasticity', 0, 1, 0.01).name('Elasticity').onChange( () => {  
           this.gelatinMaterial.uniforms.u_elasticity.value = this.params.elasticity;
         });
+        
       }
 
     } else if (this.currentMaterial === this.creativeMaterial) {
       this.creativeFolder.show();
 
       if ( this.creativeFolder.__controllers.length === 0 ) {
-        // color
+        this.creativeFolder.add(this.creativeMaterial.uniforms.u_lightDirection.value, 'x', -1, 1, 0.01).name('Light Direction X');
+        this.creativeFolder.add(this.creativeMaterial.uniforms.u_lightDirection.value, 'y', -1, 1, 0.01).name('Light Direction Y');
+        this.creativeFolder.add(this.creativeMaterial.uniforms.u_lightDirection.value, 'z', -1, 1, 0.01).name('Light Direction Z');
         this.creativeFolder.add(this.creativeMaterial.uniforms.u_inflateAmount, 'value', 0, 1, 0.01).name('Inflate Amount');
       }
     }
@@ -367,8 +386,6 @@ class App {
         this.currentMaterial.uniforms.u_elasticity.value = this.elasticity;
       }
 
-      this.gelatinMaterial.uniforms.u_shininess.value = this.shininess;
-
       // Animación de la luz. Light direction
       const lightDirection = new THREE.Vector3(
         Math.sin(performance.now() * 0.001) * 2,
@@ -377,20 +394,12 @@ class App {
       ).normalize();
       this.currentMaterial.uniforms.u_lightDirection.value = lightDirection;
 
-
-    } else if (this.currentMaterial === this.creativeMaterial) {
-      this.creativeMaterial.uniforms.u_time.value = elapsedTime;
-      this.creativeMaterial.uniforms.cameraPosition.value = this.camera.position;
-    
     } else if (this.currentMaterial === this.materialVertex) {
-      this.materialVertex.uniforms.u_time.value = elapsedTime * this.params.time; // Multiplica elapsedTime por la velocidad
-
+      this.materialVertex.uniforms.u_time.value = elapsedTime * this.params.time;
       this.mesh.updateMatrixWorld();
       this.materialVertex.uniforms.u_modelMatrix.value.copy(this.mesh.matrixWorld);
-
       this.materialVertex.uniforms.projectionMatrix.value.copy(this.camera.projectionMatrix);
       this.materialVertex.uniforms.viewMatrix.value.copy(this.camera.matrixWorldInverse);
-      this.materialVertex.uniforms.cameraPosition.value = this.camera.position;
     }
 
     this.renderer.render(this.scene, this.camera);
