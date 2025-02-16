@@ -39,9 +39,7 @@ void main() {
     float specularFactor = pow(max(dot(normal, halfVector), 0.0), u_shininess);
     vec3 specular = specularFactor * u_specularColor;
 
-    // Combine all lighting components
-    vec3 color = ambient + diffuse + specular;  // Sum all components
+    vec3 color = ambient + diffuse + specular;
 
-    // Apply transparency
     fragColor = vec4(color, u_transparency);
 }

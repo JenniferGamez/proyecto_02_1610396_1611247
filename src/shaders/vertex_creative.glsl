@@ -15,12 +15,12 @@ uniform mat4 projectionMatrix;
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform float u_time;
-uniform float u_inflateAmount; // Controla cuánto se infla la geometría
+uniform float u_inflateAmount;
 
 void main() {
     v_positionWorld = (modelMatrix * vec4(position, 1.0)).xyz;
 
-    // Efecto de inflado basado en una onda senoidal
+    // Efecto de inflado
     float inflate = sin(u_time * 2.0) * u_inflateAmount;  
     vec3 inflatedPosition = position + normal * inflate;
 

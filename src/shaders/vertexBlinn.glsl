@@ -47,6 +47,5 @@ void main() {
 
     v_depth = gl_Position.z / gl_Position.w;
 
-    //Transforma las normales al espacio mundo
     v_normal = mat3(modelMatrix) * normal;
 }

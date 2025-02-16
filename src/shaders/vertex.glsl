@@ -1,7 +1,7 @@
 // Vertex shader. Material 1.
 precision highp float;
 
-// Varyings de salida
+// Varyings de entrada
 in vec3 position;
 in vec3 normal;
 

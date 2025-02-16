@@ -22,7 +22,7 @@ class App {
   private mesh: THREE.Mesh;
   private startTime: number;
   private clickTime: number;
-  private clickPosition: THREE.Vector3;
+  //private clickPosition: THREE.Vector3;
   private elasticity: number;
   private params: { geometry: string, material: string, time: number, transparent: number, shininess: number, elasticity: number, inflateAmount: number };
   
@@ -204,7 +204,7 @@ class App {
     // Initialize
     this.startTime = Date.now();
     this.clickTime = -1;
-    this.clickPosition = new THREE.Vector3(-1.0, -1.0);
+    //this.clickPosition = new THREE.Vector3(-1.0, -1.0);
     this.onWindowResize();
 
     // Bind methods
