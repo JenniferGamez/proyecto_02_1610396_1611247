@@ -1,52 +1,30 @@
-// #version 300 es
-precision mediump float;
+// Vertex shader. Material 1.
+precision highp float;
 
+// Varyings de entrada
+in vec3 position;
+in vec3 normal;
+
+// Uniforms
 uniform mat4 projectionMatrix;
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
-// - custom uniforms
-uniform float u_time;
 
-// - attributes
-in vec3 position;
-in vec3 normal;
-in vec2 uv;
-// - custom
-in float a_random;
+uniform float u_smoothness; // Control de suavidad
+uniform float u_time; // Tiempo para la animación
 
-// - varying
-out float v_random;
-out float v_height;
-out vec2 v_uv;
-
-vec4 clipSpaceTransform(vec4 modelPosition) {
-  // already modelMatrix multiplied
-  return projectionMatrix * viewMatrix * modelPosition;
-}
+// Varyings de salida
+out vec3 v_positionWorld;
+out vec3 v_normal;
 
 void main() {
-  // 01. base vertex shader
-  vec4 viewPosition = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+    vec3 smoothedPosition = position;
+    
+    float displacement = sin(position.x * 5.0 + u_time * 2.0) * u_smoothness * 0.5;
+    smoothedPosition.y += displacement;
 
-  // 02. basic vertex mod with sin function
-  // vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-  // modelPosition.z += sin(modelPosition.x * 18.0) * 0.1;
-  // vec4 viewPosition = clipSpaceTransform(modelPosition);
+    v_positionWorld = (modelMatrix * vec4(smoothedPosition, 1.0)).xyz;
+    v_normal = mat3(modelMatrix) * normal;
 
-  // 03. attribute handling
-  // vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-  // modelPosition.z += a_random * 0.071;
-  // vec4 viewPosition = clipSpaceTransform(modelPosition);
-  // v_random = a_random;
-
-  // 04. attribute handling with custom uniform (time)
-  // vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-  // modelPosition.z += sin(modelPosition.x * 10.0 + u_time * 1.0) * 0.07;
-  // vec4 viewPosition = clipSpaceTransform(modelPosition);
-  // v_height = sin(modelPosition.x * 10.0 + u_time * 1.0);
-
-  // 05. passing UVs
-  v_uv = uv;
-
-  gl_Position = viewPosition;
+    gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(smoothedPosition, 1.0);
 }
