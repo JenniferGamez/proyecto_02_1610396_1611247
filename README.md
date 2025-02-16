@@ -1,4 +1,12 @@
-# Signed Distance Functions
+# Lab 1 Shaders y Materiales | CI5321
+
+## Description 
+This project involves the implementation of three different materials to demonstrate practical knowledge about shaders and materials in computer graphics.
+
+## Team Members
+- **Jennifer Gámez** - Carnet: 16-10396
+- **Amaranta Villegas** - Carnet: 16-11247
+
 
 ## Development environment
 
@@ -13,10 +21,25 @@ This project was developed using the following tech stack:
 ## How to run this project
 
 1. Download and copy this project
+    ``git clone https://github.com/JenniferGamez/proyecto_01_1610396_1611247/ ``
 2. Install a compatible Node.js version (I guess any v20.10+ should suffice)
 3. Run `npm install` to install the dependencies
 4. Run `npm run dev` to run the Three.js project, usually on port 5173
 5. perfect
+
+### Important Links
+- [GitHub Repository](https://github.com/JenniferGamez/proyecto_01_1610396_1611247/) 
+- [Video Link](https://drive.google.com/file/d/16Rzx-WBBHLSx6I6HVIMIcB9-Xbwcfcs8/view?usp=sharing)
+
+## ScreenShoots
+
+![Jelly](./assets/cubo.png)
+
+![Sphera](./assets//circulo.png)
+
+![Donut](./assets/esfera.png)
+
+![Creative](./assets/respira.png)
 
 ## Reference material
 
