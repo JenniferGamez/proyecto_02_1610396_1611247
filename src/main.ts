@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import particlesVertexShader from './shaders/vertex.glsl';
-import particlesFragmentShader from './shaders/fragment.glsl';
+import vertexShader from './shaders/vertex.glsl';
+import fragmentShader from './shaders/fragment.glsl';
 
 class App {
   private scene: THREE.Scene;
@@ -59,13 +59,16 @@ class App {
     this.particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     this.particlesGeometry.setAttribute('a_time', new THREE.BufferAttribute(times, 1));
 
-    this.particlesMaterial = new THREE.ShaderMaterial({
-      vertexShader: particlesVertexShader,
-      fragmentShader: particlesFragmentShader,
+    this.particlesMaterial = new THREE.RawShaderMaterial({
+      vertexShader,
+      fragmentShader,
       uniforms: {
         u_time: { value: 0 },
-        u_velocity: { value: new THREE.Vector3(0.5, 1, 0) }, // Ejemplo de velocidad
+        u_velocity: { value: new THREE.Vector3(0.5, 1, 0) },
+        modelViewMatrix: { value: new THREE.Matrix4() },  // Añadir matrices
+        projectionMatrix: { value: new THREE.Matrix4() },
       },
+      glslVersion: THREE.GLSL3,
     });
 
     this.particles = new THREE.Points(this.particlesGeometry, this.particlesMaterial);
@@ -96,6 +99,10 @@ class App {
 
     if (this.particlesMaterial && this.particlesMaterial.uniforms) {
       this.particlesMaterial.uniforms.u_time.value = elapsedTime;
+  
+      // Actualizamos las matrices
+      this.particlesMaterial.uniforms.modelViewMatrix.value = this.camera.matrixWorldInverse;
+      this.particlesMaterial.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
     }
 
     this.renderer.render(this.scene, this.camera);
