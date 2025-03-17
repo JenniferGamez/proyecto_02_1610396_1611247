@@ -1,25 +1,32 @@
-precision highp float;
+in vec3 position;
+in vec3 a_color;
+in float a_lifeTime;
+in vec3 a_velocity;
 
-in vec3 position;  // La posición de la partícula
-in float a_time;   // El tiempo de la partícula
+uniform float u_time;
+uniform vec3 u_gravity;
+uniform float u_particleSize;
+uniform float u_lifeTime;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
 
-uniform float u_time;  // Tiempo global
-uniform vec3 u_velocity;  // Velocidad de las partículas
-uniform mat4 modelViewMatrix;  // Matriz de vista
-uniform mat4 projectionMatrix;  // Matriz de proyección
-
-out vec3 v_position;  // Posición en el fragment shader
+out vec3 v_color;
+out float v_opacity;
 
 void main() {
-  // Calculamos la nueva posición de la partícula
-  vec3 newPosition = position + u_velocity * u_time;
+    float timeLived = mod(u_time, u_lifeTime);
+    float lifeRatio = timeLived / a_lifeTime;
 
-  // Pasamos la nueva posición al fragment shader
-  v_position = newPosition;
+    // Movimiento: sube con velocidad + dispersión
+    vec3 newPosition = position + a_velocity * timeLived + 0.5 * u_gravity * timeLived * timeLived;
+    newPosition.x += sin(timeLived * 5.0) * 0.2; // Pequeñas oscilaciones para turbulencia
 
-  // Aplicamos la matriz modelViewMatrix y projectionMatrix manualmente
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+    // Color: de naranja a negro
+    v_color = mix(a_color, vec3(0.1, 0.1, 0.1), lifeRatio);
 
-  // Ajustamos el tamaño del punto
-  gl_PointSize = 5.0;
+    // Opacidad: alta al inicio, baja al final
+    v_opacity = 1.0 - lifeRatio;
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+    gl_PointSize = u_particleSize * (1.0 - lifeRatio); // Disminuye el tamaño con el tiempo
 }
