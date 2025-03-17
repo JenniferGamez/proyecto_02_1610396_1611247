@@ -1,14 +1,15 @@
 precision highp float;
 
-in vec3 v_color;
-in float v_opacity;
+in vec3 v_position;  
+in float v_alpha;  
 
-out vec4 FragColor;
+out vec4 FragColor;  
 
 void main() {
-    // Suavizar los bordes para dar efecto de humo difuminado
-    float dist = length(gl_PointCoord - vec2(0.5)); // Distancia desde el centro
-    float alpha = smoothstep(0.5, 0.2, dist) * v_opacity; 
+  float distance = length(gl_PointCoord - vec2(0.5));
+  float alpha = smoothstep(0.5, 0.0, distance) * v_alpha;  
 
-    FragColor = vec4(v_color, alpha);
+  vec3 color = vec3(0.8, 0.6, 1.0) * (1.0 - length(v_position) * 0.2);  
+
+  FragColor = vec4(color, alpha);
 }

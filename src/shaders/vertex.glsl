@@ -1,32 +1,30 @@
-in vec3 position;
-in vec3 a_color;
-in float a_lifeTime;
-in vec3 a_velocity;
+precision highp float;
 
-uniform float u_time;
-uniform vec3 u_gravity;
-uniform float u_particleSize;
-uniform float u_lifeTime;
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
+in vec3 position;  
+in float a_time;   
 
-out vec3 v_color;
-out float v_opacity;
+uniform float u_time;  
+uniform mat4 modelViewMatrix;  
+uniform mat4 projectionMatrix;  
+
+out vec3 v_position;  
+out float v_alpha;  
 
 void main() {
-    float timeLived = mod(u_time, u_lifeTime);
-    float lifeRatio = timeLived / a_lifeTime;
+  float angle = atan(position.y, position.x);
+  float radius = length(position.xy);
+  float spiralFactor = 0.5 * radius; // Factor de giro en espiral
+  float timeFactor = u_time * 0.1; 
 
-    // Movimiento: sube con velocidad + dispersión
-    vec3 newPosition = position + a_velocity * timeLived + 0.5 * u_gravity * timeLived * timeLived;
-    newPosition.x += sin(timeLived * 5.0) * 0.2; // Pequeñas oscilaciones para turbulencia
+  vec3 newPosition = vec3(
+    radius * cos(angle + spiralFactor + timeFactor),
+    radius * sin(angle + spiralFactor + timeFactor),
+    position.z * 0.1
+  );
 
-    // Color: de naranja a negro
-    v_color = mix(a_color, vec3(0.1, 0.1, 0.1), lifeRatio);
+  v_position = newPosition;
+  v_alpha = 1.0 - smoothstep(0.0, 5.0, radius); // Atenuación en el borde
 
-    // Opacidad: alta al inicio, baja al final
-    v_opacity = 1.0 - lifeRatio;
-
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-    gl_PointSize = u_particleSize * (1.0 - lifeRatio); // Disminuye el tamaño con el tiempo
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+  gl_PointSize = 2.0 + 2.0 * (1.0 - radius / 5.0);
 }
