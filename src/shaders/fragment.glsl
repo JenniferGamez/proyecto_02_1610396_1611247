@@ -1,11 +1,10 @@
-// Vertex shader. Material 1.
+#version 300 es
 
-precision highp float;
+in vec3 v_position; // Recibimos la posición desde el vertex shader
 
-// Varyings
-out vec4 fragColor;
+out vec4 FragColor; // Salida de color de la partícula
 
 void main() {
-    // Color de salida
-    fragColor = vec4(0.5, 0.0, 0.5, 1.0);
+  // Generamos un color en función de la posición de la partícula
+  FragColor = vec4(fract(v_position), 1.0); // Color basado en la posición
 }
