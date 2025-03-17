@@ -12,10 +12,10 @@ class App {
     private particles!: THREE.Points;
     private startTime: number;
     private numParticles: number;
-    private gravity: THREE.Vector3;
     private particleSize: number;
-    private lifeTime: number;
-    private explosionForce: number;
+    private baseSpeed: number;
+    private trailObject: THREE.Mesh;
+    private trailColor: THREE.Color;
 
     private camConfig = {
         fov: 75,
@@ -35,7 +35,7 @@ class App {
             this.camConfig.near,
             this.camConfig.far
         );
-        this.camera.position.z = 5;
+        this.camera.position.z = 10;
 
         // Configuración del renderizador
         this.renderer = new THREE.WebGLRenderer({
@@ -48,12 +48,18 @@ class App {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(this.renderer.domElement);
 
-        // Parámetros (ajusta estos!)
-        this.numParticles = 3000;
-        this.gravity = new THREE.Vector3(0, -0.8, 0);
-        this.particleSize = 3.0;
-        this.lifeTime = 2.0;
-        this.explosionForce = 5.0;
+        // Parámetros
+        this.numParticles = 5000;
+        this.particleSize = 2;
+        this.baseSpeed = 1;
+        this.trailColor = new THREE.Color(0.0, 1.0, 1.0); // Color cian
+
+
+        // Crear el objeto que dejará la estela
+        const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        this.trailObject = new THREE.Mesh(geometry, material);
+        this.scene.add(this.trailObject);
 
         // Inicializar el sistema de partículas
         this.createParticles();
@@ -69,11 +75,9 @@ class App {
         // Enlazar métodos
         this.onWindowResize = this.onWindowResize.bind(this);
         this.animate = this.animate.bind(this);
-        this.handleKeyDown = this.handleKeyDown.bind(this);
 
         // Agregar event listeners
         window.addEventListener('resize', this.onWindowResize);
-        window.addEventListener('keydown', this.handleKeyDown);
 
         // Iniciar el bucle principal
         this.animate();
@@ -84,80 +88,83 @@ class App {
         // Crear partículas
         const positions = new Float32Array(this.numParticles * 3);
         const colors = new Float32Array(this.numParticles * 3);
-        const lifeTimes = new Float32Array(this.numParticles);
-        const velocities = new Float32Array(this.numParticles * 3);
+        const opacities = new Float32Array(this.numParticles);
 
         for (let i = 0; i < this.numParticles; i++) {
-            // Posición inicial centrada
-            positions[i * 3] = (Math.random() - 0.5) * 0.5;
-            positions[i * 3 + 1] = Math.random() * 0.2;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
+            // Posición inicial (centrada en el objeto)
+            positions[i * 3] = this.trailObject.position.x;
+            positions[i * 3 + 1] = this.trailObject.position.y;
+            positions[i * 3 + 2] = this.trailObject.position.z;
 
-            // Velocidad inicial (explosión)
-            const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * this.explosionForce;
-            velocities[i * 3] = Math.cos(angle) * speed;
-            velocities[i * 3 + 1] = Math.sin(angle) * speed;
-            velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.5 * this.explosionForce;
+            // Color (cian)
+            colors[i * 3] = this.trailColor.r;
+            colors[i * 3 + 1] = this.trailColor.g;
+            colors[i * 3 + 2] = this.trailColor.b;
 
-            // Color inicial aleatorio
-            colors[i * 3] = Math.random();
-            colors[i * 3 + 1] = Math.random();
-            colors[i * 3 + 2] = Math.random();
-
-            // Tiempo de vida aleatorio
-            lifeTimes[i] = Math.random() * this.lifeTime;
+            // Opacidad inicial
+            opacities[i] = 1.0;
         }
 
         this.particlesGeometry = new THREE.BufferGeometry();
         this.particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         this.particlesGeometry.setAttribute('a_color', new THREE.BufferAttribute(colors, 3));
-        this.particlesGeometry.setAttribute('a_lifeTime', new THREE.BufferAttribute(lifeTimes, 1));
-        this.particlesGeometry.setAttribute('a_velocity', new THREE.BufferAttribute(velocities, 3));
+        this.particlesGeometry.setAttribute('a_opacity', new THREE.BufferAttribute(opacities, 1));
 
         this.particlesMaterial = new THREE.RawShaderMaterial({
             vertexShader,
             fragmentShader,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
             uniforms: {
                 u_time: { value: 0 },
-                u_gravity: { value: this.gravity },
                 u_particleSize: { value: this.particleSize },
-                u_lifeTime: { value: this.lifeTime },
-                modelViewMatrix: { value: new THREE.Matrix4() },
-                projectionMatrix: { value: new THREE.Matrix4() },
             },
             glslVersion: THREE.GLSL3,
         });
-
-        // Remover las particulas anteriores
-        if (this.particles) {
-            this.scene.remove(this.particles);
-            this.particlesGeometry.dispose();
-            this.particlesMaterial.dispose();
-        }
 
         this.particles = new THREE.Points(this.particlesGeometry, this.particlesMaterial);
         this.scene.add(this.particles);
     }
 
-    private handleKeyDown(event: KeyboardEvent): void {
-        if (event.code === 'Space') {
-            // Crear una nueva explosión
-            this.createParticles();
-        }
-    }
+    private updateParticles(): void {
+        const positions = this.particlesGeometry.attributes.position.array as THREE.TypedArray;
+        const opacities = this.particlesGeometry.attributes.a_opacity.array as THREE.TypedArray;
 
+        for (let i = this.numParticles - 1; i > 0; i--) {
+            // Mover la posición de la partícula a la posición de la anterior
+            positions[i * 3] = positions[(i - 1) * 3];
+            positions[i * 3 + 1] = positions[(i - 1) * 3 + 1];
+            positions[i * 3 + 2] = positions[(i - 1) * 3 + 2];
+
+            // Desvanecer la opacidad
+            opacities[i] = opacities[i - 1] * 0.99; // Ajusta este valor para cambiar la velocidad de desvanecimiento
+        }
+
+        // La primera partícula sigue al objeto guía
+        positions[0] = this.trailObject.position.x;
+        positions[1] = this.trailObject.position.y;
+        positions[2] = this.trailObject.position.z;
+        opacities[0] = 1.0;
+
+        this.particlesGeometry.attributes.position.needsUpdate = true;
+        this.particlesGeometry.attributes.a_opacity.needsUpdate = true;
+    }
 
     private animate(): void {
         requestAnimationFrame(this.animate);
-        const elapsedTime = (Date.now() - this.startTime) / 1500;
+        const elapsedTime = (Date.now() - this.startTime) / 1000;
+
+        // Movimiento del objeto guía (onda senoidal)
+        this.trailObject.position.x = Math.sin(elapsedTime * this.baseSpeed) * 3; // Ajusta este valor para cambiar la amplitud
+        this.trailObject.position.y = Math.cos(elapsedTime * this.baseSpeed * 0.5) * 2;  // Ajusta este valor para cambiar la amplitud
+        this.trailObject.position.z = Math.cos(elapsedTime * this.baseSpeed * 0.3) * 1;  // Ajusta este valor para cambiar la amplitud
+
+        // Actualizar el sistema de partículas
+        this.updateParticles();
 
         if (this.particlesMaterial && this.particlesMaterial.uniforms) {
             this.particlesMaterial.uniforms.u_time.value = elapsedTime;
-
-            // Actualizamos las matrices
-            this.particlesMaterial.uniforms.modelViewMatrix.value = this.camera.matrixWorldInverse;
-            this.particlesMaterial.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
         }
 
         this.renderer.render(this.scene, this.camera);
