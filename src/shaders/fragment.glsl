@@ -9,7 +9,6 @@ void main() {
   // Hacer la partícula circular
   vec2 coord = gl_PointCoord - vec2(0.5);
   float distance = length(coord);
-  if (distance > 0.5) discard;  // Descartar fragmentos fuera del círculo
 
   // Convertir a coordenadas polares
   float angle = atan(v_position.y, v_position.x);  
@@ -18,18 +17,18 @@ void main() {
   // Generar la espiral usando ondas sinusoidales
   float spiral = sin(angle * 10.0 + radius * 5.0);
 
-  // Definir los colores de la galaxia (morado, azul, blanco)
-  vec3 purple = vec3(0.6, 1.0, 1.0); // Morado
-  vec3 blue = vec3(0.2, 0.4, 1.0);   // Azul
-  vec3 white = vec3(1.0, 1.0, 1.0);  // Blanco
+  // Definir los colores de la galaxia
+  vec3 purple = vec3(1.5, 0, 1.5);
+  vec3 blue = vec3(0.5, 0, 1.0);
+  vec3 white = vec3(1.0, 1.0, 1.0);
 
   // Mezclar los colores en función de la espiral
-  vec3 color = mix(purple, blue, smoothstep(-1.0, 1.0, spiral));  
-  color = mix(color, white, pow(radius, 0.5)); // Hacer el centro más brillante
+  vec3 color = mix(purple, blue, smoothstep(-0.5, 1.0, spiral));  
+  color = mix(color, white, pow(radius, 0.2));
 
   // Ajustar la intensidad del color basado en la distancia al centro
-  float brightness = 1.4 - radius * 0.8;  
-  color *= brightness;
+  float brightness = 2.0 - radius * 0.5;  
+  color *= brightness * 1.2;
 
   // Aplicar transparencia suave
   float alpha = smoothstep(0.5, 0.0, distance) * v_alpha * brightness;  

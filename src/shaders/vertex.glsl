@@ -13,7 +13,7 @@ out float v_alpha;
 void main() {
   float angle = atan(position.y, position.x);
   float radius = length(position.xy);
-  float spiralFactor = 0.5 * radius; // Factor de giro en espiral
+  float spiralFactor = 0.5 * radius;
   float timeFactor = u_time * 0.1; 
 
   vec3 newPosition = vec3(
