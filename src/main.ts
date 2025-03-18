@@ -34,8 +34,13 @@ class App {
         spiralFactor: 0.5,
         radiusScale: 1.0,
         shader: 'galaxy',
-        fireworksVelocity: 1.0,
-        fireworksSize: 1.0,
+
+        gravityX: 0,
+        gravityY: -0.8,
+        gravityZ: 0,
+        lifeTime: 2.0,
+        explosionForce: 5.0,
+
     };
 
     constructor() {
@@ -54,9 +59,11 @@ class App {
         this.initMaterials();
         this.createParticles();
         
+        // Controles de la camara
         const controls = new OrbitControls(this.camera, this.renderer.domElement);
         controls.enableDamping = true;
         
+        // GUI
         this.gui = new GUI();
         this.setupGUI();
         
@@ -80,60 +87,96 @@ class App {
             glslVersion: THREE.GLSL3,
         });
 
-        this.particlesMaterial = this.galaxyMaterial;
+        this.fireworksMaterial = new THREE.RawShaderMaterial({
+            vertexShader: vertexFireworks,
+            fragmentShader: fragmentFireworks,
+            uniforms: {
+                u_time: { value: 0 },
+                u_gravity: { value: new THREE.Vector3(this.settings.gravityX, this.settings.gravityY, this.settings.gravityZ) },
+                u_particleSize: { value: this.settings.particleSize },
+                u_lifeTime: { value: this.settings.lifeTime },
+            },
+            glslVersion: THREE.GLSL3,
+        });
 
-        // this.fireworksMaterial = new THREE.RawShaderMaterial({
-        //     vertexShader: vertexFireworks,
-        //     fragmentShader: fragmentFireworks,
-        //     uniforms: {
-        //         u_time: { value: this.settings.timeMultiplier },
-        //         u_particleSize: { value: this.settings.particleSize },
-        //         u_velocity: {value: this.settings.fireworksVelocity},
-        //         u_size: {value: this.settings.fireworksSize},
-        //     },
-        //     glslVersion: THREE.GLSL3,
-        // });
+        this.particlesMaterial = this.galaxyMaterial;
     }
 
     private createParticles(): void {
-        // Si ya hay un sistema de partículas, eliminarlo antes de crear uno nuevo
         if (this.particles) {
             this.scene.remove(this.particles);
             this.particlesGeometry.dispose();
             this.particlesMaterial.dispose();
         }
-
+    
         const numParticles = this.settings.numPart;
-        const positions = new Float32Array(numParticles * 3);
-        const times = new Float32Array(numParticles);
+        const positions = new Float32Array(this.settings.numPart * 3);
+        const colors = new Float32Array(this.settings.numPart * 3);
+        const lifeTimes = new Float32Array(this.settings.numPart);
+        const velocities = new Float32Array(this.settings.numPart * 3);
+        
+        let attributes = {};
+    
+        if (this.settings.shader === 'galaxy') {
+            const times = new Float32Array(numParticles);
+            attributes = {
+                a_time: new THREE.BufferAttribute(times, 1),
+            };
 
-        for (let i = 0; i < numParticles; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 10;
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+            for (let i = 0; i < numParticles; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 10;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+            }
+
+        } else if (this.settings.shader === 'fireworks') {
+    
+            for (let i = 0; i < numParticles; i++) {
+
+                // Posición inicial centrada
+                positions[i * 3] = 0;
+                positions[i * 3 + 1] = 0;
+                positions[i * 3 + 2] = 0;
+
+                // Asignar una velocidad aleatoria para simular la explosión radial
+                const theta = Math.random() * Math.PI * 2; // Ángulo horizontal
+                const phi = Math.acos(2 * Math.random() - 1); // Ángulo vertical
+
+                const speed = Math.random() * this.settings.explosionForce; // Velocidad aleatoria
+
+                // Convertir coordenadas esféricas a cartesianas
+                velocities[i * 3] = speed * Math.sin(phi) * Math.cos(theta); // X
+                velocities[i * 3 + 1] = speed * Math.sin(phi) * Math.sin(theta); // Y
+                velocities[i * 3 + 2] = speed * Math.cos(phi); // Z
+
+                colors[i * 3] = Math.random();
+                colors[i * 3 + 1] = Math.random();
+                colors[i * 3 + 2] = Math.random();
+
+                lifeTimes[i] = Math.random() * this.settings.lifeTime;
+
+                attributes = {
+                    a_velocity: new THREE.BufferAttribute(velocities, 3),
+                    a_color: new THREE.BufferAttribute(colors, 3),
+                    a_lifeTime: new THREE.BufferAttribute(lifeTimes, 1),
+                }
+            }
         }
-
+        
+        // Crear la geometría de las partículas
         this.particlesGeometry = new THREE.BufferGeometry();
         this.particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        this.particlesGeometry.setAttribute('a_time', new THREE.BufferAttribute(times, 1));
-
-        //this.updateMaterial();
-
+        for (const attributeName in attributes) {
+            this.particlesGeometry.setAttribute(attributeName, attributes[attributeName]);
+        }
         this.particles = new THREE.Points(this.particlesGeometry, this.particlesMaterial);
         this.scene.add(this.particles);
-    }
-
-    private setupGUI2(): void {
-        
-        this.gui.add(this.settings, 'particleSize', 1.0, 10.0, 0.1).name('Tamaño Partículas');
-        
-        this.gui.add(this.settings, 'numPart', 100, 20000, 100).name('Num. de Partículas').onChange(()=>{this.createParticles()});
-        
     }
 
     private setupGUI(): void {
         this.gui.add(this.settings, 'shader', ['galaxy', 'fireworks']).name('Shader').onChange(() => {
             this.updateMaterial();
+            this.createParticles();
         });
         
         this.gui.add(this.settings, 'particleSize', 1.0, 10.0, 0.1).name('Tam. Partículas');
@@ -147,37 +190,49 @@ class App {
 
         // Parametros especificos de fireworks
         const fireworksFolder = this.gui.addFolder('Fireworks Settings');
-        fireworksFolder.add(this.settings, 'fireworksVelocity', 0.1, 10.0, 0.1).name('Velocity');
-        fireworksFolder.add(this.settings, 'fireworksSize', 1.0, 10.0, 0.1).name('Size');
+        fireworksFolder.add(this.settings, 'gravityX', -10, 10, 0.1).name('Gravedad X').onChange(() => { this.updateGravity(); });
+        fireworksFolder.add(this.settings, 'gravityY', -10, 10, 0.1).name('Gravedad Y').onChange(() => { this.updateGravity(); });
+        fireworksFolder.add(this.settings, 'gravityZ', -10, 10, 0.1).name('Gravedad Z').onChange(() => { this.updateGravity(); });
+        fireworksFolder.add(this.settings, 'lifeTime', 1, 10, 0.1).name('Tiempo de vida').onChange(() => { this.updateLifeTime(); });
+    }
+
+    private updateGravity(): void {
+        this.fireworksMaterial.uniforms.u_gravity.value.set(this.settings.gravityX, this.settings.gravityY, this.settings.gravityZ);
+    }
+
+    private updateLifeTime(): void {
+        this.fireworksMaterial.uniforms.u_lifeTime.value = this.settings.lifeTime;
     }
 
     private updateMaterial(): void {
         if (this.settings.shader === 'galaxy') {
             this.particlesMaterial = this.galaxyMaterial;
-        } 
-        // else if (this.settings.shader === 'fireworks') {
-        //     this.particlesMaterial = this.fireworksMaterial;
-        // }
-        this.particles.material = this.particlesMaterial;
-        
+        } else if (this.settings.shader === 'fireworks') {
+            this.particlesMaterial = this.fireworksMaterial;
+        }
+        // Crear nuevas partículas con la configuración adecuada
+        this.createParticles();
     }
 
     private animate(): void {
         requestAnimationFrame(this.animate.bind(this));
         const elapsedTime = ((Date.now() - this.startTime) / 1000) * this.settings.timeMultiplier;
-        
-        this.particlesMaterial.uniforms.u_time.value = elapsedTime;
-        this.particlesMaterial.uniforms.u_particleSize.value = this.settings.particleSize;
-
-        if (this.settings.shader === 'galaxy') {
-            this.particlesMaterial.uniforms.u_spiralFactor.value = this.settings.spiralFactor;
-            this.particlesMaterial.uniforms.u_radiusScale.value = this.settings.radiusScale;
-        } 
-        // else if (this.settings.shader === 'fireworks') {
-        //     this.particlesMaterial.uniforms.u_velocity.value = this.settings.fireworksVelocity;
-        //     this.particlesMaterial.uniforms.u_size.value = this.settings.fireworksSize;
-        // }
-
+    
+        // Asegúrate de que el material y los uniforms estén correctamente asignados
+        if (this.particlesMaterial && this.particlesMaterial.uniforms) {
+            this.particlesMaterial.uniforms.u_time.value = elapsedTime;
+            this.particlesMaterial.uniforms.u_particleSize.value = this.settings.particleSize;
+    
+            if (this.settings.shader === 'galaxy') {
+                this.particlesMaterial.uniforms.u_spiralFactor.value = this.settings.spiralFactor;
+                this.particlesMaterial.uniforms.u_radiusScale.value = this.settings.radiusScale;
+            } else if (this.settings.shader === 'fireworks') {
+                console.log('fireworks');
+            }
+        } else {
+            console.error('No material or uniforms available');
+        }
+    
         this.renderer.render(this.scene, this.camera);
     }
 
