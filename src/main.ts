@@ -80,6 +80,8 @@ class App {
             glslVersion: THREE.GLSL3,
         });
 
+        this.particlesMaterial = this.galaxyMaterial;
+
         // this.fireworksMaterial = new THREE.RawShaderMaterial({
         //     vertexShader: vertexFireworks,
         //     fragmentShader: fragmentFireworks,
@@ -115,7 +117,7 @@ class App {
         this.particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         this.particlesGeometry.setAttribute('a_time', new THREE.BufferAttribute(times, 1));
 
-        this.updateMaterial();
+        //this.updateMaterial();
 
         this.particles = new THREE.Points(this.particlesGeometry, this.particlesMaterial);
         this.scene.add(this.particles);
@@ -133,17 +135,17 @@ class App {
         this.gui.add(this.settings, 'shader', ['galaxy', 'fireworks']).name('Shader').onChange(() => {
             this.updateMaterial();
         });
-        this.gui.add(this.settings, 'timeMultiplier', 0.1, 15, 0.1).name('Velocidad');
-        this.gui.add(this.settings, 'particleSize', 1.0, 10.0, 0.1).name('Tamaño Partículas');
-        this.gui.add(this.settings, 'numPart', 100, 20000, 100).name('Num. de Partículas').onChange(() => { this.createParticles(); });
+        
+        this.gui.add(this.settings, 'particleSize', 1.0, 10.0, 0.1).name('Tam. Partículas');
+        this.gui.add(this.settings, 'numPart', 100, 20000, 100).name('Num. Partículas').onChange(() => { this.createParticles(); });
 
         // Parametros especificos de galaxy
         const galaxyFolder = this.gui.addFolder('Galaxy Settings');
         galaxyFolder.add(this.settings, 'spiralFactor', 0.0, 2.0, 0.01).name('Factor Espiral');
         galaxyFolder.add(this.settings, 'radiusScale', 0.1, 2.0, 0.01).name('Escala Radio');
-        galaxyFolder.add(this.settings, 'timeMultiplier', 0.1, 15, 0.1).name('Velocidad');
+        galaxyFolder.add(this.settings, 'timeMultiplier', 1.0, 20, 1).name('Velocidad');
 
-        //parametros especificos de fireworks
+        // Parametros especificos de fireworks
         const fireworksFolder = this.gui.addFolder('Fireworks Settings');
         fireworksFolder.add(this.settings, 'fireworksVelocity', 0.1, 10.0, 0.1).name('Velocity');
         fireworksFolder.add(this.settings, 'fireworksSize', 1.0, 10.0, 0.1).name('Size');
@@ -152,10 +154,12 @@ class App {
     private updateMaterial(): void {
         if (this.settings.shader === 'galaxy') {
             this.particlesMaterial = this.galaxyMaterial;
-        } else if (this.settings.shader === 'fireworks') {
-            this.particlesMaterial = this.fireworksMaterial;
-        }
+        } 
+        // else if (this.settings.shader === 'fireworks') {
+        //     this.particlesMaterial = this.fireworksMaterial;
+        // }
         this.particles.material = this.particlesMaterial;
+        
     }
 
     private animate(): void {
@@ -168,10 +172,11 @@ class App {
         if (this.settings.shader === 'galaxy') {
             this.particlesMaterial.uniforms.u_spiralFactor.value = this.settings.spiralFactor;
             this.particlesMaterial.uniforms.u_radiusScale.value = this.settings.radiusScale;
-        } else if (this.settings.shader === 'fireworks') {
-            this.particlesMaterial.uniforms.u_velocity.value = this.settings.fireworksVelocity;
-            this.particlesMaterial.uniforms.u_size.value = this.settings.fireworksSize;
-        }
+        } 
+        // else if (this.settings.shader === 'fireworks') {
+        //     this.particlesMaterial.uniforms.u_velocity.value = this.settings.fireworksVelocity;
+        //     this.particlesMaterial.uniforms.u_size.value = this.settings.fireworksSize;
+        // }
 
         this.renderer.render(this.scene, this.camera);
     }
