@@ -8,11 +8,6 @@ import fragmentGalaxy from './shaders/galaxy/fragment.glsl';
 import vertexFireworks from './shaders/fireworks/vertex.glsl';
 import fragmentFireworks from './shaders/fireworks/fragment.glsl';
 
-// Variables para los programas de shader
-let galaxyProgram;
-let fireworksProgram;
-let currentProgram;
-
 class App {
     private scene: THREE.Scene;
     private camera: THREE.PerspectiveCamera;
@@ -119,7 +114,7 @@ class App {
         const lifeTimes = new Float32Array(this.settings.numPart);
         const velocities = new Float32Array(this.settings.numPart * 3);
         
-        let attributes = {};
+        let attributes: { [key: string]: THREE.BufferAttribute } = {};
     
         if (this.settings.shader === 'galaxy') {
             const times = new Float32Array(numParticles);
@@ -216,8 +211,10 @@ class App {
             this.fireworksFolder.domElement.style.display = 'none';
         } else if (this.settings.shader === 'fireworks') {
             this.particlesMaterial = this.fireworksMaterial;
-            this.galaxyFolder.domElement.style.display = 'none'; // Oculta Galaxy
+            this.galaxyFolder.domElement.style.display = 'none';
             this.fireworksFolder.domElement.style.display = 'block';
+        } else if (this.settings.shader === 'fireworks') {
+            console.log('Error');
         }
         // Crear nuevas partículas con la configuración adecuada
         this.createParticles();
@@ -238,9 +235,7 @@ class App {
             } else if (this.settings.shader === 'fireworks') {
                 console.log('fireworks');
             }
-        } else {
-            console.error('No material or uniforms available');
-        }
+        } 
     
         this.renderer.render(this.scene, this.camera);
     }
