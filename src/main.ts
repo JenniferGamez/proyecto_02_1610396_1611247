@@ -27,6 +27,9 @@ class App {
     private startTime: number;
     private gui: GUI;
 
+    private galaxyFolder!: GUI; // Declare galaxyFolder
+    private fireworksFolder!: GUI; // Declare fireworksFolder
+
     private settings = {
         particleSize: 1.0,
         timeMultiplier: 1.0,
@@ -179,18 +182,23 @@ class App {
         this.gui.add(this.settings, 'particleSize', 1.0, 10.0, 0.1).name('Tam. Partículas');
         this.gui.add(this.settings, 'numPart', 100, 20000, 100).name('Num. Partículas').onChange(() => { this.createParticles(); });
 
+        // Cambio de controles dinamicamente
+        
         // Parametros especificos de galaxy
-        const galaxyFolder = this.gui.addFolder('Galaxy Settings');
-        galaxyFolder.add(this.settings, 'spiralFactor', 0.0, 2.0, 0.01).name('Factor Espiral');
-        galaxyFolder.add(this.settings, 'radiusScale', 0.1, 2.0, 0.01).name('Escala Radio');
-        galaxyFolder.add(this.settings, 'timeMultiplier', 1.0, 20, 1).name('Velocidad');
+        this.galaxyFolder = this.gui.addFolder('Galaxy Settings');
+        this.galaxyFolder.add(this.settings, 'spiralFactor', 0.0, 2.0, 0.01).name('Factor Espiral');
+        this.galaxyFolder.add(this.settings, 'radiusScale', 0.1, 2.0, 0.01).name('Escala Radio');
+        this.galaxyFolder.add(this.settings, 'timeMultiplier', 1.0, 20, 1).name('Velocidad');
 
         // Parametros especificos de fireworks
-        const fireworksFolder = this.gui.addFolder('Fireworks Settings');
-        fireworksFolder.add(this.settings, 'gravityX', -10, 10, 0.1).name('Gravedad X').onChange(() => { this.updateGravity(); });
-        fireworksFolder.add(this.settings, 'gravityY', -10, 10, 0.1).name('Gravedad Y').onChange(() => { this.updateGravity(); });
-        fireworksFolder.add(this.settings, 'gravityZ', -10, 10, 0.1).name('Gravedad Z').onChange(() => { this.updateGravity(); });
-        fireworksFolder.add(this.settings, 'lifeTime', 1, 10, 0.1).name('Tiempo de vida').onChange(() => { this.updateLifeTime(); });
+        this.fireworksFolder = this.gui.addFolder('Fireworks Settings');
+        this.fireworksFolder.add(this.settings, 'gravityX', -10, 10, 0.1).name('Gravedad X').onChange(() => { this.updateGravity(); });
+        this.fireworksFolder.add(this.settings, 'gravityY', -10, 10, 0.1).name('Gravedad Y').onChange(() => { this.updateGravity(); });
+        this.fireworksFolder.add(this.settings, 'gravityZ', -10, 10, 0.1).name('Gravedad Z').onChange(() => { this.updateGravity(); });
+        this.fireworksFolder.add(this.settings, 'lifeTime', 1, 10, 0.1).name('Tiempo de vida').onChange(() => { this.updateLifeTime(); });
+        this.fireworksFolder.add(this.settings, 'timeMultiplier', 1, 10, 0.1).name('Velocidad');
+        
+        this.updateMaterial();
     }
 
     private updateGravity(): void {
@@ -204,8 +212,12 @@ class App {
     private updateMaterial(): void {
         if (this.settings.shader === 'galaxy') {
             this.particlesMaterial = this.galaxyMaterial;
+            this.galaxyFolder.domElement.style.display = 'block';
+            this.fireworksFolder.domElement.style.display = 'none';
         } else if (this.settings.shader === 'fireworks') {
             this.particlesMaterial = this.fireworksMaterial;
+            this.galaxyFolder.domElement.style.display = 'none'; // Oculta Galaxy
+            this.fireworksFolder.domElement.style.display = 'block';
         }
         // Crear nuevas partículas con la configuración adecuada
         this.createParticles();
