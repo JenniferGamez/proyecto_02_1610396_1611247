@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'dat.gui';
-
 import vertexShader from './shaders/vertex.glsl';
 import fragmentShader from './shaders/fragment.glsl';
 
@@ -13,40 +12,53 @@ class App {
   private particlesMaterial!: THREE.ShaderMaterial;
   private particles!: THREE.Points;
   private startTime: number;
+  private gui: GUI;
 
-  private camConfig = {
-    fov: 75,
-    aspect: window.innerWidth / window.innerHeight,
-    near: 0.1,
-    far: 1000,
+  private settings = {
+    particleSize: 1.0,
+    timeMultiplier: 1.0,
+    numPart: 10000,
+    spiralFactor: 0.5, // Factor de espiral inicial
+    radiusScale: 1.0,  // Escala del radio inicial
   };
 
   constructor() {
-    // Crear escena
     this.scene = new THREE.Scene();
-
-    // Configuración de la cámara
-    this.camera = new THREE.PerspectiveCamera(
-      this.camConfig.fov,
-      this.camConfig.aspect,
-      this.camConfig.near,
-      this.camConfig.far
-    );
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.z = 10;
-
-    // Configuración del renderizador
-    this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      powerPreference: 'high-performance',
-    });
+    
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     if (!this.renderer.capabilities.isWebGL2) {
       console.warn('WebGL 2.0 no está disponible en este navegador.');
     }
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    const canvas = document.body.appendChild(this.renderer.domElement);
+    document.body.appendChild(this.renderer.domElement);
 
-    // Crear partículas (directamente en el constructor)
-    const numParticles = 10000;
+    // Sistema de particulas
+    this.createParticles();
+    
+    const controls = new OrbitControls(this.camera, this.renderer.domElement);
+    controls.enableDamping = true;
+    
+    this.gui = new GUI();
+    this.setupGUI();
+    
+    this.startTime = Date.now();
+    this.onWindowResize();
+    
+    window.addEventListener('resize', this.onWindowResize.bind(this));
+    this.animate();
+  }
+
+  private createParticles(): void {
+    // Si ya hay un sistema de partículas, eliminarlo antes de crear uno nuevo
+    if (this.particles) {
+      this.scene.remove(this.particles);
+      this.particlesGeometry.dispose();
+      this.particlesMaterial.dispose();
+    }
+
+    const numParticles = this.settings.numPart;
     const positions = new Float32Array(numParticles * 3);
     const times = new Float32Array(numParticles);
 
@@ -54,7 +66,6 @@ class App {
       positions[i * 3] = (Math.random() - 0.5) * 10;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
-      times[i] = Math.random();
     }
 
     this.particlesGeometry = new THREE.BufferGeometry();
@@ -65,47 +76,40 @@ class App {
       vertexShader,
       fragmentShader,
       uniforms: {
-        u_time: { value: 0 },
-        u_velocity: { value: new THREE.Vector3(0.5, 1, 0) },
-        modelViewMatrix: { value: new THREE.Matrix4() },  // Añadir matrices
-        projectionMatrix: { value: new THREE.Matrix4() },
+        u_time: { value: this.settings.timeMultiplier },
+        u_spiralFactor: { value: this.settings.spiralFactor }, // Añadir nuevo uniform
+        u_radiusScale: { value: this.settings.radiusScale },   // Añadir nuevo uniform
+        u_particleSize: { value: this.settings.particleSize },  // Añadir nuevo uniform
       },
       glslVersion: THREE.GLSL3,
     });
 
     this.particles = new THREE.Points(this.particlesGeometry, this.particlesMaterial);
     this.scene.add(this.particles);
+  }
 
-    // Configuración de controles
-    const controls = new OrbitControls(this.camera, canvas);
-    controls.enableDamping = true;
+  private setupGUI(): void {
+    this.gui.add(this.settings, 'timeMultiplier', 0.1, 15, 0.1).name('Velocidad');
+    this.gui.add(this.settings, 'spiralFactor', 0.0, 2.0, 0.01).name('Factor Espiral');
+    this.gui.add(this.settings, 'radiusScale', 0.1, 2.0, 0.01).name('Escala Radio');
+    this.gui.add(this.settings, 'particleSize', 1.0, 10.0, 0.1).name('Tamaño Partículas');
+    this.gui.add(this.settings, 'numPart', 100, 20000, 100).name('Num. de Partículas').onChange(()=>{this.createParticles()});
+    
+  }
 
-    // Inicialización
-    this.startTime = Date.now();
-    this.onWindowResize();
-
-    // Enlazar métodos
-    this.onWindowResize = this.onWindowResize.bind(this);
-    this.animate = this.animate.bind(this);
-
-    // Agregar event listeners
-    window.addEventListener('resize', this.onWindowResize);
-
-    // Iniciar el bucle principal
-    this.animate();
+  private updateUniforms(): void {
+    //.particlesMaterial.uniforms.u_velocity.value.set(this.settings.velocityX, this.settings.velocityY, this.settings.velocityZ);
+    console.log(this.particlesMaterial.uniforms.u_velocity.value);
   }
 
   private animate(): void {
-    requestAnimationFrame(this.animate);
-    const elapsedTime = (Date.now() - this.startTime) / 1000;
-
-    if (this.particlesMaterial && this.particlesMaterial.uniforms) {
-      this.particlesMaterial.uniforms.u_time.value = elapsedTime;
-  
-      // Actualizamos las matrices
-      this.particlesMaterial.uniforms.modelViewMatrix.value = this.camera.matrixWorldInverse;
-      this.particlesMaterial.uniforms.projectionMatrix.value = this.camera.projectionMatrix;
-    }
+    requestAnimationFrame(this.animate.bind(this));
+    const elapsedTime = ((Date.now() - this.startTime) / 1000) * this.settings.timeMultiplier;
+    
+    this.particlesMaterial.uniforms.u_time.value = elapsedTime;
+    this.particlesMaterial.uniforms.u_spiralFactor.value = this.settings.spiralFactor;
+    this.particlesMaterial.uniforms.u_radiusScale.value = this.settings.radiusScale;
+    this.particlesMaterial.uniforms.u_particleSize.value = this.settings.particleSize;
 
     this.renderer.render(this.scene, this.camera);
   }
