@@ -95,6 +95,7 @@ class App {
                 u_gravity: { value: new THREE.Vector3(this.settings.gravityX, this.settings.gravityY, this.settings.gravityZ) },
                 u_particleSize: { value: this.settings.particleSize },
                 u_lifeTime: { value: this.settings.lifeTime },
+
             },
             glslVersion: THREE.GLSL3,
         });
@@ -139,15 +140,11 @@ class App {
                 positions[i * 3 + 2] = 0;
 
                 // Asignar una velocidad aleatoria para simular la explosión radial
-                const theta = Math.random() * Math.PI * 2; // Ángulo horizontal
-                const phi = Math.acos(2 * Math.random() - 1); // Ángulo vertical
-
-                const speed = Math.random() * this.settings.explosionForce; // Velocidad aleatoria
-
-                // Convertir coordenadas esféricas a cartesianas
-                velocities[i * 3] = speed * Math.sin(phi) * Math.cos(theta); // X
-                velocities[i * 3 + 1] = speed * Math.sin(phi) * Math.sin(theta); // Y
-                velocities[i * 3 + 2] = speed * Math.cos(phi); // Z
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * this.settings.explosionForce;
+                velocities[i * 3] = Math.cos(angle) * speed;
+                velocities[i * 3 + 1] = Math.sin(angle) * speed;
+                velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.5 * this.settings.explosionForce;
 
                 colors[i * 3] = Math.random();
                 colors[i * 3 + 1] = Math.random();
