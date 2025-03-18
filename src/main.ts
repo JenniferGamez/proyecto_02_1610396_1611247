@@ -18,8 +18,8 @@ class App {
     particleSize: 1.0,
     timeMultiplier: 1.0,
     numPart: 10000,
-    spiralFactor: 0.5, // Factor de espiral inicial
-    radiusScale: 1.0,  // Escala del radio inicial
+    spiralFactor: 0.5,
+    radiusScale: 1.0,
   };
 
   constructor() {
@@ -77,9 +77,9 @@ class App {
       fragmentShader,
       uniforms: {
         u_time: { value: this.settings.timeMultiplier },
-        u_spiralFactor: { value: this.settings.spiralFactor }, // Añadir nuevo uniform
-        u_radiusScale: { value: this.settings.radiusScale },   // Añadir nuevo uniform
-        u_particleSize: { value: this.settings.particleSize },  // Añadir nuevo uniform
+        u_spiralFactor: { value: this.settings.spiralFactor },
+        u_radiusScale: { value: this.settings.radiusScale },
+        u_particleSize: { value: this.settings.particleSize }, 
       },
       glslVersion: THREE.GLSL3,
     });
