@@ -1,17 +1,20 @@
 precision highp float;
 
+// Varyings de entrada
 in vec3 position;
 in vec3 a_color;
 in float a_opacity;
 
+// Uniforms
 uniform float u_time;
 uniform float u_particleSize;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
 
+// Varyings de salida
 out vec3 v_color;
 out float v_opacity;
 
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
 
 void main() {
     v_color = a_color;

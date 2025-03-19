@@ -51,6 +51,7 @@ class App {
         // Wake settings
         trailColor: new THREE.Color(1.0, 0.84, 0.0),
         baseSpeed: 1.00,
+        opacity: 0.5,
     };
 
     constructor() {
@@ -66,7 +67,6 @@ class App {
         document.body.appendChild(this.renderer.domElement);
 
         // Sistema de particulas
-        this.createStarGeometry();
         this.initMaterials();
         this.createParticles();
         
@@ -119,10 +119,11 @@ class App {
             vertexShader: vertexWake,
             fragmentShader: fragmentWake,
             uniforms: {
-                u_time: { value: 0 },
+                u_time: { value: this.settings.timeMultiplier },
                 u_particleSize: { value: this.settings.particleSize },
                 u_trailColor: { value: this.settings.trailColor },
                 u_baseSpeed: { value: this.settings.baseSpeed },
+                u_opacity: { value: this.settings.opacity },
             },
             transparent: true,
             depthWrite: false,
@@ -130,8 +131,7 @@ class App {
         });
     }
 
-    private createStarGeometry(): THREE.BufferGeometry {
-        // Inicializar trailObject con geometría y material
+    private createStarGeometry(): void {
         const geometry = new THREE.SphereGeometry(0.1, 32, 32);
         const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
         this.trailObject = new THREE.Mesh(geometry, material);
@@ -143,26 +143,29 @@ class App {
             this.scene.remove(this.particles);
             if(this.particlesGeometry) this.particlesGeometry.dispose();
             if(this.particlesMaterial) this.particlesMaterial.dispose();
-            if (this.star) this.scene.remove(this.star);
             if (this.trail) this.scene.remove(this.trail);
+            if (this.trailObject) this.scene.remove(this.trailObject);
         }
-    
-        const numParticles = this.settings.numPart;
+
+        if (this.trail) {
+            this.scene.remove(this.trail);
+            this.trail.geometry.dispose();
+        }
+
         const positions = new Float32Array(this.settings.numPart * 3);
         const colors = new Float32Array(this.settings.numPart * 3);
-        const opacities = new Float32Array(numParticles);
         const lifeTimes = new Float32Array(this.settings.numPart);
         const velocities = new Float32Array(this.settings.numPart * 3);
         
         let attributes: { [key: string]: THREE.BufferAttribute } = {};
     
         if (this.settings.shader === 'galaxy') {
-            const times = new Float32Array(numParticles);
+            const times = new Float32Array(this.settings.numPart);
             attributes = {
                 a_time: new THREE.BufferAttribute(times, 1),
             };
 
-            for (let i = 0; i < numParticles; i++) {
+            for (let i = 0; i < this.settings.numPart; i++) {
                 positions[i * 3] = (Math.random() - 0.5) * 10;
                 positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
                 positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
@@ -170,7 +173,7 @@ class App {
 
         } else if (this.settings.shader === 'fireworks') {
     
-            for (let i = 0; i < numParticles; i++) {
+            for (let i = 0; i < this.settings.numPart; i++) {
 
                 // Posición inicial centrada
                 positions[i * 3] = 0;
@@ -199,31 +202,31 @@ class App {
             }
 
         } else if (this.settings.shader === 'wake') {
-        
-            const trailPositions = new Float32Array(numParticles * 3);
-            const trailColors = new Float32Array(numParticles * 3);
-            const trailOpacities = new Float32Array(numParticles);
+            this.particlesMaterial = this.wakeMaterial;
+            this.createStarGeometry();
+            
+            const numParticles = this.settings.numPart;
+            const trailColors = new Float32Array(numParticles  * 3);
+            const trailOpacities = new Float32Array(numParticles );
 
-            for (let i = 0; i < numParticles; i++) {
+            for (let i = 0; i < numParticles ; i++) {
                 trailColors[i * 3] = this.settings.trailColor.r;
                 trailColors[i * 3 + 1] = this.settings.trailColor.g;
                 trailColors[i * 3 + 2] = this.settings.trailColor.b;
                 trailOpacities[i] = 0.0;
             }
 
-            this.particlesGeometry = new THREE.BufferGeometry();
-            this.particlesGeometry.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
-            this.particlesGeometry.setAttribute('a_color', new THREE.BufferAttribute(trailColors, 3));
-            this.particlesGeometry.setAttribute('a_opacity', new THREE.BufferAttribute(trailOpacities, 1));
-
+            attributes = {
+                a_color: new THREE.BufferAttribute(trailColors, 3),
+                a_opacity: new THREE.BufferAttribute(trailOpacities, 1),
+                a_velocity: new THREE.BufferAttribute(velocities, 3),
+                a_lifeTime: new THREE.BufferAttribute(lifeTimes, 1),
+            };
+            
             this.trail = new THREE.Points(this.particlesGeometry, this.wakeMaterial);
             this.scene.add(this.trail);
+        }
 
-            // No crear geometría de partículas aquí para la estela
-            return;
-         }
-
-        // Crear la geometría de las partículas
         this.particlesGeometry = new THREE.BufferGeometry();
         this.particlesGeometry.setAttribute(
             'position', 
@@ -254,8 +257,7 @@ class App {
         this.gui.add(this.settings, 'particleSize', 1.0, 10.0, 0.1).name('Tam. Partículas');
         this.gui.add(this.settings, 'numPart', 100, 20000, 100).name('Num. Partículas').onChange(() => { this.createParticles(); });
         this.gui.add(this.settings, 'timeMultiplier', 1, 20, 0.1).name('Velocidad');
-        // Cambio de controles dinamicamente
-        
+    
         // Parametros especificos de galaxy
         this.galaxyFolder = this.gui.addFolder('Galaxy Settings');
         this.galaxyFolder.add(this.settings, 'spiralFactor', 0.0, 2.0, 0.01).name('Factor Espiral');
@@ -268,9 +270,11 @@ class App {
         this.fireworksFolder.add(this.settings, 'gravityZ', -10, 10, 0.1).name('Gravedad Z').onChange(() => { this.updateGravity(); });
         this.fireworksFolder.add(this.settings, 'lifeTime', 1, 10, 0.1).name('Tiempo de vida').onChange(() => { this.updateLifeTime(); });
         
-        
         // Parametros especificos de fireworks
-        this.fireworksFolder = this.gui.addFolder('Wake Settings');
+        this.wakeFolder = this.gui.addFolder('Wake Settings');
+        this.wakeFolder.add(this.settings, 'timeMultiplier', 1, 20, 0.1).name('Tiempo');
+        this.wakeFolder.add(this.settings, 'opacity', 0.1, 1, 0.01).name('Opacidad');
+
 
         this.updateMaterial();
     }
@@ -281,7 +285,6 @@ class App {
             const opacities = this.trail.geometry.attributes.a_opacity.array as THREE.TypedArray;
             const numParticles = this.settings.numPart;
 
-            // Shift particle positions
             for (let i = numParticles - 1; i > 0; i--) {
                 positions[i * 3] = positions[(i - 1) * 3];
                 positions[i * 3 + 1] = positions[(i - 1) * 3 + 1];
@@ -294,6 +297,7 @@ class App {
             this.trail.geometry.attributes.position.array[1] = this.trailObject.position.y;
             this.trail.geometry.attributes.position.array[2] = this.trailObject.position.z;
             this.trail.geometry.attributes.a_opacity.array[0] = 1.0;
+            opacities[0] = this.settings.opacity;
 
             this.trail.geometry.attributes.position.needsUpdate = true;
             this.trail.geometry.attributes.a_opacity.needsUpdate = true;
@@ -313,15 +317,20 @@ class App {
             this.particlesMaterial = this.galaxyMaterial;
             this.galaxyFolder.domElement.style.display = 'block';
             this.fireworksFolder.domElement.style.display = 'none';
+            this.wakeFolder.domElement.style.display = 'none';
         
         } else if (this.settings.shader === 'fireworks') {
             this.particlesMaterial = this.fireworksMaterial;
-            this.galaxyFolder.domElement.style.display = 'none';
             this.fireworksFolder.domElement.style.display = 'block';
+            this.galaxyFolder.domElement.style.display = 'none';
+            this.wakeFolder.domElement.style.display = 'none';
        
         } else if (this.settings.shader === 'wake') {
-            console.log('Actualizar wake');
+            
             this.particlesMaterial = this.wakeMaterial;
+            this.wakeFolder.domElement.style.display = 'block';
+            this.galaxyFolder.domElement.style.display = 'none';
+            this.fireworksFolder.domElement.style.display = 'none';;
         }
         
         // Crear nuevas partículas con la configuración adecuada
@@ -335,7 +344,7 @@ class App {
         if (this.particlesMaterial && this.particlesMaterial.uniforms) {
             this.particlesMaterial.uniforms.u_time.value = elapsedTime;
             this.particlesMaterial.uniforms.u_particleSize.value = this.settings.particleSize;
-    
+            
             if (this.settings.shader === 'galaxy') {
                 this.particlesMaterial.uniforms.u_spiralFactor.value = this.settings.spiralFactor;
                 this.particlesMaterial.uniforms.u_radiusScale.value = this.settings.radiusScale;
@@ -344,6 +353,7 @@ class App {
                 this.trailObject.position.x = Math.sin(elapsedTime * this.settings.baseSpeed) * 3;
                 this.trailObject.position.y = Math.cos(elapsedTime * this.settings.baseSpeed * 0.5) * 2;
                 this.trailObject.position.z = Math.cos(elapsedTime * this.settings.baseSpeed * 0.3) * 1;
+                this.wakeMaterial.uniforms.u_opacity.value = this.settings.opacity;
 
                 this.updateWake();
             }

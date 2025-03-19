@@ -1,9 +1,11 @@
 
 precision highp float;
 
+// Varyings de ebtrada
 in vec3 v_color;
 in float v_opacity;
 
+// Varyings de salida
 out vec4 FragColor;
 
 void main() {
