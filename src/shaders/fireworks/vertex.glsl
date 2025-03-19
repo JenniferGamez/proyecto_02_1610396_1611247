@@ -1,9 +1,12 @@
+precision highp float;
 
+// Varyings de entrada
 in vec3 position;
 in vec3 a_color;
 in float a_lifeTime;
 in vec3 a_velocity;
 
+// Uniforms
 uniform float u_time;
 uniform vec3 u_gravity;
 uniform float u_particleSize;
@@ -11,6 +14,7 @@ uniform float u_lifeTime;
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
 
+// Varyings de salida
 out vec3 v_color;
 out float v_opacity;
 
