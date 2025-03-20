@@ -1,10 +1,11 @@
+// Vertex shader. Material 1.
+
 precision highp float;
 
-in vec3 v_position;  // Recibimos la posición de la partícula
-
-out vec4 FragColor;  // Color de la partícula
+// Varyings
+out vec4 fragColor;
 
 void main() {
-  // Color basado en la posición de la partícula
-  FragColor = vec4(fract(v_position), 1.0);  // Puedes cambiar el color aquí
+    // Color de salida
+    fragColor = vec4(0.5, 0.0, 0.5, 1.0);
 }

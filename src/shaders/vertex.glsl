@@ -1,25 +1,30 @@
+// Vertex shader. Material 1.
 precision highp float;
 
-in vec3 position;  // La posición de la partícula
-in float a_time;   // El tiempo de la partícula
+// Varyings de entrada
+in vec3 position;
+in vec3 normal;
 
-uniform float u_time;  // Tiempo global
-uniform vec3 u_velocity;  // Velocidad de las partículas
-uniform mat4 modelViewMatrix;  // Matriz de vista
-uniform mat4 projectionMatrix;  // Matriz de proyección
+// Uniforms
+uniform mat4 projectionMatrix;
+uniform mat4 modelMatrix;
+uniform mat4 viewMatrix;
 
-out vec3 v_position;  // Posición en el fragment shader
+uniform float u_smoothness; // Control de suavidad
+uniform float u_time; // Tiempo para la animación
+
+// Varyings de salida
+out vec3 v_positionWorld;
+out vec3 v_normal;
 
 void main() {
-  // Calculamos la nueva posición de la partícula
-  vec3 newPosition = position + u_velocity * u_time;
+    vec3 smoothedPosition = position;
+    
+    float displacement = sin(position.x * 5.0 + u_time * 2.0) * u_smoothness * 0.5;
+    smoothedPosition.y += displacement;
 
-  // Pasamos la nueva posición al fragment shader
-  v_position = newPosition;
+    v_positionWorld = (modelMatrix * vec4(smoothedPosition, 1.0)).xyz;
+    v_normal = mat3(modelMatrix) * normal;
 
-  // Aplicamos la matriz modelViewMatrix y projectionMatrix manualmente
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-
-  // Ajustamos el tamaño del punto
-  gl_PointSize = 5.0;
+    gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(smoothedPosition, 1.0);
 }
