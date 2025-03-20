@@ -1,4 +1,4 @@
-# Lab 1 Shaders y Materiales | CI5321
+# Lab 2 Shaders y Materiales | CI5321
 
 ## Description 
 This project involves the implementation of three different materials to demonstrate practical knowledge about shaders and materials in computer graphics.
@@ -21,25 +21,25 @@ This project was developed using the following tech stack:
 ## How to run this project
 
 1. Download and copy this project
-    ``git clone https://github.com/JenniferGamez/proyecto_01_1610396_1611247/ ``
+    ``git clone https://github.com/JenniferGamez/proyecto_02_1610396_1611247/ ``
 2. Install a compatible Node.js version (I guess any v20.10+ should suffice)
 3. Run `npm install` to install the dependencies
 4. Run `npm run dev` to run the Three.js project, usually on port 5173
 5. perfect
 
 ### Important Links
-- [GitHub Repository](https://github.com/JenniferGamez/proyecto_01_1610396_1611247/) 
-- [Video Link](https://drive.google.com/file/d/16Rzx-WBBHLSx6I6HVIMIcB9-Xbwcfcs8/view?usp=sharing)
+- [GitHub Repository](https://github.com/JenniferGamez/proyecto_02_1610396_1611247/) 
+- [Video Link](https://drive.google.com/file/d/1YqdSNW6NpUw6Wr6iKTc9ucTA_SgDrpZS/view?usp=drive_link)
 
 ## ScreenShoots
 
-![Jelly](./assets/cubo.png)
+![Galaxy](./assets/galaxy.jpg)
 
-![Sphera](./assets//circulo.png)
+![firewoks 1](./assets/fireworks.jpg)
 
-![Donut](./assets/esfera.png)
+![fireworks 2](./assets/fireworks2.jpg)
 
-![Creative](./assets/respira.png)
+![wake](./assets/wake.jpg)
 
 ## Reference material
 
